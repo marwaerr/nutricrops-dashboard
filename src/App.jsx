@@ -385,18 +385,728 @@ export default function NutricropsQualityExcellence() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
         {/* DASHBOARD QUALITY EXCELLENCE */}
-        {activeTab === 'dashboard' && (
-          <div className="space-y-6">
-            {/* Le contenu du dashboard reste identique - je ne le répète pas ici pour gagner de la place */}
-            {/* Copiez tout le contenu du dashboard depuis votre version actuelle */}
+{activeTab === 'dashboard' && (
+  <div className="space-y-6">
+    {/* Sous-navigation Dashboard */}
+    <div className="bg-white p-3 sm:p-4 rounded-xl shadow-md border border-gray-200">
+      <div className="flex gap-2 sm:gap-3 overflow-x-auto">
+        {['overview', 'claims', 'incidents'].map(view => (
+          <button
+            key={view}
+            onClick={() => setDashboardView(view)}
+            className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all whitespace-nowrap text-sm sm:text-base ${
+              dashboardView === view
+                ? 'bg-green-600 text-white shadow-lg'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            {view === 'overview' && 'Vue d\'ensemble'}
+            {view === 'claims' && 'Quality Claims'}
+            {view === 'incidents' && 'Quality Incidents'}
+          </button>
+        ))}
+      </div>
+    </div>
+
+    {/* Vue Overview */}
+    {dashboardView === 'overview' && (
+      <div className="space-y-6">
+        {/* KPIs Principaux */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg border-l-4 border-blue-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-xs sm:text-sm font-medium">Réclamations 2024</p>
+                <p className="text-3xl sm:text-4xl font-bold text-gray-900 mt-2">{stats.total2024}</p>
+                <p className="text-xs sm:text-sm text-gray-500 mt-1">Claims Rate: {stats.claimsRate2024}%</p>
+              </div>
+              <TrendingDown className="w-8 h-8 sm:w-12 sm:h-12 text-blue-500" />
+            </div>
           </div>
-        )}
+
+          <div className="bg-gradient-to-br from-green-500 to-green-600 p-4 sm:p-6 rounded-xl shadow-lg text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-100 text-xs sm:text-sm font-medium">Réclamations 2025</p>
+                <p className="text-3xl sm:text-4xl font-bold mt-2">{stats.total2025}</p>
+                <p className="text-xs sm:text-sm text-green-100 mt-1">Claims Rate: {stats.claimsRate2025}%</p>
+              </div>
+              <TrendingUp className="w-8 h-8 sm:w-12 sm:h-12 text-green-200" />
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 p-4 sm:p-6 rounded-xl shadow-lg text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-yellow-100 text-xs sm:text-sm font-medium">En Cours</p>
+                <p className="text-3xl sm:text-4xl font-bold mt-2">{stats.enCours}</p>
+              </div>
+              <Clock className="w-8 h-8 sm:w-12 sm:h-12 text-yellow-200" />
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 p-4 sm:p-6 rounded-xl shadow-lg text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-emerald-100 text-xs sm:text-sm font-medium">Clôturées</p>
+                <p className="text-3xl sm:text-4xl font-bold mt-2">{stats.cloturees}</p>
+              </div>
+              <CheckCircle className="w-8 h-8 sm:w-12 sm:h-12 text-emerald-200" />
+            </div>
+          </div>
+        </div>
+
+        {/* Evolution Claims Rate */}
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg overflow-x-auto">
+          <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Evolution du Claims Rate</h3>
+          <div className="min-w-[600px] sm:min-w-0">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-green-100">
+                  <th className="px-3 sm:px-4 py-3 text-left font-bold text-gray-700 text-sm sm:text-base">Fertilisers</th>
+                  <th className="px-3 sm:px-4 py-3 text-center font-bold text-gray-700 text-sm sm:text-base">2022</th>
+                  <th className="px-3 sm:px-4 py-3 text-center font-bold text-gray-700 text-sm sm:text-base">2023</th>
+                  <th className="px-3 sm:px-4 py-3 text-center font-bold text-gray-700 text-sm sm:text-base">2024</th>
+                  <th className="px-3 sm:px-4 py-3 text-center font-bold text-gray-700 text-sm sm:text-base">2025</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b">
+                  <td className="px-3 sm:px-4 py-4 font-semibold text-sm sm:text-base">Claims Rate</td>
+                  <td className="px-3 sm:px-4 py-4 text-center text-base sm:text-lg font-bold text-red-600">2.58%</td>
+                  <td className="px-3 sm:px-4 py-4 text-center text-base sm:text-lg font-bold text-orange-600">2.74%</td>
+                  <td className="px-3 sm:px-4 py-4 text-center text-base sm:text-lg font-bold text-yellow-600">2.6%</td>
+                  <td className="px-3 sm:px-4 py-4 text-center text-base sm:text-lg font-bold text-green-600">2.0%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-4 p-3 sm:p-4 bg-green-50 rounded-lg border border-green-200">
+            <p className="text-green-800 font-semibold flex items-center gap-2 text-sm sm:text-base">
+              <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5" />
+              Amélioration de 0.6% du Claims Rate entre 2024 et 2025
+            </p>
+          </div>
+        </div>
+
+        {/* Graphiques côte à côte */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Répartition par Famille Engrais */}
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <PieChart className="w-6 h-6 text-green-600" />
+              Répartition par Famille Engrais 2025
+            </h3>
+            <div className="space-y-3">
+              {produitStats.map(prod => {
+                const percentage = ((prod.count / 30) * 100).toFixed(0);
+                return (
+                  <div key={prod.produit}>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-semibold text-gray-700">{prod.produit}</span>
+                      <span className="text-gray-600 font-bold">{prod.count} ({percentage}%)</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-4">
+                      <div 
+                        className={`${prod.color} h-4 rounded-full transition-all`}
+                        style={{ width: `${percentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Répartition Géographique */}
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <MapPin className="w-6 h-6 text-blue-600" />
+              Répartition par Régions 2025
+            </h3>
+            <div className="space-y-3">
+              {regionStats.map(region => (
+                <div key={region.region}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-semibold text-gray-700">{region.region}</span>
+                    <span className="text-gray-600 font-bold">{region.count} ({region.percentage}%)</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-4">
+                    <div 
+                      className="bg-blue-600 h-4 rounded-full transition-all"
+                      style={{ width: `${region.percentage}%` }}
+                    ></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Répartition par Type */}
+        <div className="bg-white p-6 rounded-xl shadow-lg">
+          <h3 className="text-xl font-bold text-gray-900 mb-4">Répartition par Type d'Incident - Aspects Physiques (34)</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {incidentTypes.map(incident => (
+              <div key={incident.type} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-gray-700">{incident.type}</span>
+                  <span className={`${incident.color} text-white px-3 py-1 rounded-full font-bold`}>
+                    {incident.count}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+            <p className="text-sm text-gray-700">
+              <span className="font-bold">Chimique:</span> 3 (Composition, Humidité, Métaux lourds)
+            </p>
+          </div>
+        </div>
+
+        {/* Top Clients */}
+        <div className="bg-gradient-to-br from-green-50 to-green-100 p-8 rounded-xl shadow-lg border-2 border-green-200">
+          <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+            <Users className="w-8 h-8 text-green-600" />
+            TOP 5 Clients / Claims
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            {topClients.map((client, idx) => (
+              <div key={client.client} className="bg-white p-6 rounded-xl shadow-md text-center border-2 border-green-300">
+                <div className="text-4xl font-bold text-green-600 mb-2">#{idx + 1}</div>
+                <p className="font-bold text-gray-900 text-lg mb-2">{client.client}</p>
+                <p className="text-3xl font-bold text-green-700">{client.claims}</p>
+                <p className="text-sm text-gray-600 mt-1">réclamations</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Vue Claims */}
+    {dashboardView === 'claims' && (
+      <div className="space-y-6">
+        {/* Evolution 2024-2025 */}
+        <div className="bg-white p-6 rounded-xl shadow-lg">
+          <h3 className="text-xl font-bold text-gray-900 mb-6">Evolution du Nombre de Réclamations 2024-2025</h3>
+          <div className="flex items-end justify-around gap-8 h-80">
+            <div className="flex flex-col items-center">
+              <div className="bg-gradient-to-t from-green-600 to-green-400 rounded-t-lg w-24 transition-all hover:shadow-xl" style={{ height: '230px' }}>
+                <div className="text-white font-bold text-3xl mt-4 text-center">{stats.total2024}</div>
+              </div>
+              <p className="mt-3 font-bold text-gray-700">2024</p>
+              <p className="text-sm text-gray-500">(2.6%)</p>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="bg-gradient-to-t from-yellow-500 to-yellow-300 rounded-t-lg w-24 transition-all hover:shadow-xl" style={{ height: '150px' }}>
+                <div className="text-white font-bold text-3xl mt-4 text-center">{stats.total2025}</div>
+              </div>
+              <p className="mt-3 font-bold text-gray-700">2025</p>
+              <p className="text-sm text-gray-500">(2.0%)</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Zoom TSP 2024 */}
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl shadow-lg border-2 border-blue-300">
+          <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Package className="w-7 h-7 text-blue-600" />
+            Zoom sur les Réclamations TSP reçues en 2024
+          </h3>
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="bg-white p-4 rounded-lg shadow text-center">
+              <p className="text-sm text-gray-600">Brésil</p>
+              <p className="text-4xl font-bold text-blue-600">12</p>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow text-center">
+              <p className="text-sm text-gray-600">France</p>
+              <p className="text-4xl font-bold text-blue-600">3</p>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow text-center">
+              <p className="text-sm text-gray-600">Inde</p>
+              <p className="text-4xl font-bold text-blue-600">1</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-green-600 text-white p-4 rounded-lg shadow text-center">
+              <p className="text-sm">Site JORF</p>
+              <p className="text-4xl font-bold">12</p>
+            </div>
+            <div className="bg-orange-600 text-white p-4 rounded-lg shadow text-center">
+              <p className="text-sm">Site SAFI</p>
+              <p className="text-4xl font-bold">5</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Zoom TSP 2025 */}
+        <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl shadow-lg border-2 border-green-300">
+          <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Package className="w-7 h-7 text-green-600" />
+            Zoom sur les Réclamations TSP reçues en 2025 YTD
+          </h3>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-white p-4 rounded-lg shadow text-center">
+              <p className="text-sm text-gray-600">Brésil</p>
+              <p className="text-4xl font-bold text-green-600">5</p>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow text-center">
+              <p className="text-sm text-gray-600">Inde</p>
+              <p className="text-4xl font-bold text-green-600">4</p>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow text-center">
+              <p className="text-sm text-gray-600">Germany</p>
+              <p className="text-4xl font-bold text-green-600">3</p>
+            </div>
+          </div>
+          <div className="mt-4 p-4 bg-white rounded-lg shadow">
+            <p className="text-sm text-gray-700 mb-2 font-semibold">Problèmes principaux:</p>
+            <div className="grid grid-cols-3 gap-2">
+              <span className="bg-red-100 text-red-800 px-3 py-2 rounded text-sm font-semibold">Poussière: 5</span>
+              <span className="bg-orange-100 text-orange-800 px-3 py-2 rounded text-sm font-semibold">Prise en masse: 4</span>
+              <span className="bg-yellow-100 text-yellow-800 px-3 py-2 rounded text-sm font-semibold">Contamination: 3</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Vue Incidents */}
+    {dashboardView === 'incidents' && (
+      <div className="space-y-6">
+        {/* Statistiques Incidents */}
+        <div className="grid grid-cols-4 gap-4">
+          <div className="bg-white p-6 rounded-xl shadow-lg text-center">
+            <p className="text-gray-600 text-sm mb-2">Cargaisons Inspectées</p>
+            <p className="text-5xl font-bold text-gray-900">619</p>
+          </div>
+          <div className="bg-green-600 text-white p-6 rounded-xl shadow-lg text-center">
+            <p className="text-green-100 text-sm mb-2">Sans Incident</p>
+            <p className="text-5xl font-bold">411</p>
+            <p className="text-sm mt-1">66%</p>
+          </div>
+          <div className="bg-yellow-600 text-white p-6 rounded-xl shadow-lg text-center">
+            <p className="text-yellow-100 text-sm mb-2">Avec Incident</p>
+            <p className="text-5xl font-bold">207</p>
+            <p className="text-sm mt-1">34%</p>
+          </div>
+          <div className="bg-red-600 text-white p-6 rounded-xl shadow-lg text-center">
+            <p className="text-red-100 text-sm mb-2">Avec Réclamation</p>
+            <p className="text-5xl font-bold">16</p>
+            <p className="text-sm mt-1">X1.7</p>
+          </div>
+        </div>
+
+        {/* Types d'Incidents 2025 */}
+        <div className="bg-white p-6 rounded-xl shadow-lg">
+          <h3 className="text-xl font-bold text-gray-900 mb-6">Répartition des Types d'Incidents Qualité 2025</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="text-center">
+              <div className="bg-gray-400 rounded-full w-32 h-32 mx-auto flex items-center justify-center text-white">
+                <div>
+                  <p className="text-3xl font-bold">24%</p>
+                  <p className="text-xs">Contamination</p>
+                </div>
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="bg-gray-700 rounded-full w-32 h-32 mx-auto flex items-center justify-center text-white">
+                <div>
+                  <p className="text-3xl font-bold">23%</p>
+                  <p className="text-xs">Caked Product</p>
+                </div>
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="bg-green-500 rounded-full w-32 h-32 mx-auto flex items-center justify-center text-white">
+                <div>
+                  <p className="text-3xl font-bold">22%</p>
+                  <p className="text-xs">Dusty Product</p>
+                </div>
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="bg-green-700 rounded-full w-32 h-32 mx-auto flex items-center justify-center text-white">
+                <div>
+                  <p className="text-3xl font-bold">12%</p>
+                  <p className="text-xs">Foreign Body</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-6 grid grid-cols-3 gap-4">
+            <div className="bg-gray-100 p-3 rounded text-center">
+              <p className="text-sm text-gray-600">Wet Product</p>
+              <p className="text-2xl font-bold text-gray-900">5%</p>
+            </div>
+            <div className="bg-gray-100 p-3 rounded text-center">
+              <p className="text-sm text-gray-600">Couleur</p>
+              <p className="text-2xl font-bold text-gray-900">7%</p>
+            </div>
+            <div className="bg-gray-100 p-3 rounded text-center">
+              <p className="text-sm text-gray-600">Others</p>
+              <p className="text-2xl font-bold text-gray-900">7%</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Evolution Taux Incidents */}
+        <div className="bg-white p-6 rounded-xl shadow-lg">
+          <h3 className="text-xl font-bold text-gray-900 mb-4">Evolution du Taux d'Incidents et Nombre de Navires</h3>
+          <div className="grid grid-cols-4 gap-4">
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <p className="text-sm text-gray-600 mb-2">2024</p>
+              <p className="text-4xl font-bold text-blue-600">619</p>
+              <p className="text-sm text-gray-500 mt-1">53% sans incident</p>
+            </div>
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <p className="text-sm text-gray-600 mb-2">Q1 2025</p>
+              <p className="text-4xl font-bold text-green-600">150</p>
+              <p className="text-sm text-gray-500 mt-1">46% sans incident</p>
+            </div>
+            <div className="text-center p-4 bg-yellow-50 rounded-lg">
+              <p className="text-sm text-gray-600 mb-2">Q2 2025</p>
+              <p className="text-4xl font-bold text-yellow-600">159</p>
+              <p className="text-sm text-gray-500 mt-1">54% sans incident</p>
+            </div>
+            <div className="text-center p-4 bg-orange-50 rounded-lg">
+              <p className="text-sm text-gray-600 mb-2">Q3 2025</p>
+              <p className="text-4xl font-bold text-orange-600">167</p>
+              <p className="text-sm text-gray-500 mt-1">55% sans incident</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+)}
 
         {/* GESTION RÉCLAMATIONS */}
         {activeTab === 'reclamations' && (
           <div className="space-y-6">
-            {/* Le contenu des réclamations reste identique */}
-            {/* Copiez tout le contenu depuis votre version actuelle */}
+            {/* Filtres */}
+            <div className="bg-white p-6 rounded-xl shadow-lg">
+              <div className="space-y-4">
+                <div className="flex gap-4 items-center flex-wrap">
+                  <div className="flex-1 min-w-[300px]">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <input
+                        type="text"
+                        placeholder="Rechercher par client, navire ou ID..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                  <button className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 font-semibold">
+                    <Download className="w-5 h-5" />
+                    Exporter Excel
+                  </button>
+                </div>
+
+                <div className="flex gap-4 items-center flex-wrap">
+                  <Filter className="w-5 h-5 text-gray-600" />
+                  
+                  <div className="flex gap-2 items-center">
+                    <span className="text-sm font-semibold text-gray-700">Statut:</span>
+                    {['all', 'en_cours', 'cloture'].map(status => (
+                      <button
+                        key={status}
+                        onClick={() => setFilterStatus(status)}
+                        className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
+                          filterStatus === status
+                            ? 'bg-green-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {status === 'all' && 'Toutes'}
+                        {status === 'en_cours' && 'En cours'}
+                        {status === 'cloture' && 'Clôturées'}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2 items-center">
+                    <span className="text-sm font-semibold text-gray-700">Produit:</span>
+                    {['all', 'TSP', 'DAP', 'MAP', 'NPK'].map(prod => (
+                      <button
+                        key={prod}
+                        onClick={() => setFilterProduit(prod)}
+                        className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
+                          filterProduit === prod
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {prod === 'all' ? 'Tous' : prod}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2 items-center">
+                    <span className="text-sm font-semibold text-gray-700">Nouveau Produit:</span>
+                    {['all', 'oui', 'non'].map(nouveau => (
+                      <button
+                        key={nouveau}
+                        onClick={() => setFilterNouveauProduit(nouveau)}
+                        className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
+                          filterNouveauProduit === nouveau
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {nouveau === 'all' ? 'Tous' : nouveau === 'oui' ? 'Oui' : 'Non'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="text-sm text-gray-600">
+                  <span className="font-semibold">{filteredReclamations.length}</span> réclamation(s) trouvée(s)
+                </div>
+              </div>
+            </div>
+
+            {/* Liste Réclamations */}
+            {!selectedReclamation ? (
+              <div className="space-y-4">
+                {filteredReclamations.map(rec => (
+                  <div key={rec.id} className="bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all">
+                    <div className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-3">
+                            <h3 className="text-xl font-bold text-gray-900">{rec.id}</h3>
+                            {getStatutBadge(rec.statut)}
+                            {getPrioriteBadge(rec.priorite)}
+                            <span className="text-sm px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
+                              {rec.region}
+                            </span>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-3">
+                            <div>
+                              <span className="text-gray-500">Client:</span>
+                              <p className="font-semibold text-gray-900">{rec.client}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Navire:</span>
+                              <p className="font-semibold text-gray-900">{rec.navire}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Site:</span>
+                              <p className="font-semibold text-gray-900">{rec.site}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Date BL:</span>
+                              <p className="font-semibold text-gray-900">{rec.dateBL}</p>
+                            </div>
+                          </div>
+
+                          {rec.nouveauProduit && (
+                            <div className="mb-3">
+                              <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-bold border border-purple-300">
+                                ⭐ NOUVEAU PRODUIT
+                              </span>
+                            </div>
+                          )}
+
+                          <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded mb-3">
+                            <p className="text-sm font-medium text-gray-900">{rec.probleme}</p>
+                          </div>
+
+                          <div className="flex items-center gap-6 text-sm">
+                            <div>
+                              <Package className="w-4 h-4 inline mr-1 text-gray-500" />
+                              <span className="text-gray-600">{rec.qualite}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Quantité: </span>
+                              <span className="font-semibold text-gray-900">{rec.quantite.toLocaleString()} MT</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Demandé: </span>
+                              <span className="font-bold text-red-600">{formatCurrency(rec.montantDemande)}</span>
+                            </div>
+                            {rec.montantDedommage > 0 && (
+                              <div>
+                                <span className="text-gray-600">Dédommagé: </span>
+                                <span className="font-bold text-green-600">{formatCurrency(rec.montantDedommage)}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => setSelectedReclamation(rec)}
+                          className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                        >
+                          Voir Détails
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* DÉTAIL RÉCLAMATION */
+              <div className="bg-white rounded-xl shadow-lg border border-gray-100">
+                <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-green-50 to-blue-50">
+                  <button 
+                    onClick={() => setSelectedReclamation(null)}
+                    className="text-green-600 hover:text-green-700 font-semibold mb-4 flex items-center gap-2"
+                  >
+                    ← Retour à la liste
+                  </button>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <h2 className="text-3xl font-bold text-gray-900">{selectedReclamation.id}</h2>
+                        {getStatutBadge(selectedReclamation.statut)}
+                        {getPrioriteBadge(selectedReclamation.priorite)}
+                      </div>
+                      <p className="text-gray-600">
+                        Reçue le: <span className="font-semibold">{selectedReclamation.dateReception || 'En attente'}</span>
+                        {selectedReclamation.dateCloture && (
+                          <> • Clôturée le: <span className="font-semibold">{selectedReclamation.dateCloture}</span></>
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex gap-3">
+                      <button className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
+                        <Download className="w-5 h-5" />
+                        Exporter PDF
+                      </button>
+                      <button className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+                        <Mail className="w-5 h-5" />
+                        Envoyer Email
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 space-y-6">
+                  {/* Informations Principales */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="bg-blue-50 p-5 rounded-xl border border-blue-200">
+                      <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <Users className="w-5 h-5 text-blue-600" />
+                        Informations Client
+                      </h3>
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <span className="text-gray-600">Client:</span>
+                          <p className="font-bold text-gray-900">{selectedReclamation.client}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Région:</span>
+                          <p className="font-semibold text-gray-900">{selectedReclamation.region}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Pays:</span>
+                          <p className="font-semibold text-gray-900">{selectedReclamation.pays}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-green-50 p-5 rounded-xl border border-green-200">
+                      <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <Ship className="w-5 h-5 text-green-600" />
+                        Informations Logistique
+                      </h3>
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <span className="text-gray-600">Navire:</span>
+                          <p className="font-bold text-gray-900">{selectedReclamation.navire}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Site:</span>
+                          <p className="font-semibold text-gray-900">{selectedReclamation.site}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Date B/L:</span>
+                          <p className="font-semibold text-gray-900">{selectedReclamation.dateBL}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-purple-50 p-5 rounded-xl border border-purple-200">
+                      <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <Package className="w-5 h-5 text-purple-600" />
+                        Informations Produit
+                      </h3>
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <span className="text-gray-600">Qualité:</span>
+                          <p className="font-bold text-gray-900">{selectedReclamation.qualite}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Quantité:</span>
+                          <p className="font-semibold text-gray-900">{selectedReclamation.quantite.toLocaleString()} MT</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Problème */}
+                  <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded-lg">
+                    <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2 text-lg">
+                      <AlertCircle className="w-6 h-6 text-red-600" />
+                      Problème Signalé
+                    </h3>
+                    <p className="text-gray-900 font-medium text-lg">{selectedReclamation.probleme}</p>
+                    <p className="text-sm text-gray-600 mt-2">Type: {selectedReclamation.typeIncident}</p>
+                  </div>
+
+                  {/* Informations Financières */}
+                  <div className="bg-gradient-to-r from-orange-50 to-red-50 p-6 rounded-xl border border-orange-200">
+                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-lg">
+                      <span className="text-2xl">💰</span>
+                      Informations Financières
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="bg-white p-4 rounded-lg shadow">
+                        <p className="text-sm text-gray-600 mb-1">Montant Demandé</p>
+                        <p className="text-2xl font-bold text-red-600">{formatCurrency(selectedReclamation.montantDemande)}</p>
+                      </div>
+                      <div className="bg-white p-4 rounded-lg shadow">
+                        <p className="text-sm text-gray-600 mb-1">Montant Dédommagé</p>
+                        <p className="text-2xl font-bold text-green-600">{formatCurrency(selectedReclamation.montantDedommage)}</p>
+                      </div>
+                      <div className="bg-white p-4 rounded-lg shadow">
+                        <p className="text-sm text-gray-600 mb-1">Taux de Dédommagement</p>
+                        <p className="text-2xl font-bold text-blue-600">
+                          {selectedReclamation.montantDemande > 0 
+                            ? ((selectedReclamation.montantDedommage / selectedReclamation.montantDemande) * 100).toFixed(1) 
+                            : 0}%
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-4 pt-6 border-t border-gray-200">
+                    {selectedReclamation.statut === 'en_cours' && (
+                      <>
+                        <button className="flex-1 bg-green-600 text-white py-4 rounded-lg hover:bg-green-700 transition-colors font-semibold text-lg">
+                          Clôturer la Réclamation
+                        </button>
+                        <button className="flex-1 bg-blue-600 text-white py-4 rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg">
+                          Mettre à Jour
+                        </button>
+                      </>
+                    )}
+                    <button className="px-8 bg-gray-200 text-gray-700 py-4 rounded-lg hover:bg-gray-300 transition-colors font-semibold text-lg flex items-center gap-2">
+                      <FileText className="w-5 h-5" />
+                      Générer Rapport
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
