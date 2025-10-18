@@ -231,12 +231,6 @@ export default function NutricropsQualityExcellence() {
     }).format(amount);
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR');
-  };
-
   const getStatutBadge = (statut) => {
     const styles = {
       nouveau: 'bg-blue-100 text-blue-800 border-blue-200',
@@ -314,7 +308,7 @@ export default function NutricropsQualityExcellence() {
     filteredReclamations = filteredReclamations.filter(r => 
       r.client?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.navire?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(r.id).toLowerCase().includes(searchTerm.toLowerCase())
+      r.id?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }
 
@@ -385,403 +379,403 @@ export default function NutricropsQualityExcellence() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
         {/* DASHBOARD QUALITY EXCELLENCE */}
-{activeTab === 'dashboard' && (
-  <div className="space-y-6">
-    {/* Sous-navigation Dashboard */}
-    <div className="bg-white p-3 sm:p-4 rounded-xl shadow-md border border-gray-200">
-      <div className="flex gap-2 sm:gap-3 overflow-x-auto">
-        {['overview', 'claims', 'incidents'].map(view => (
-          <button
-            key={view}
-            onClick={() => setDashboardView(view)}
-            className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all whitespace-nowrap text-sm sm:text-base ${
-              dashboardView === view
-                ? 'bg-green-600 text-white shadow-lg'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            {view === 'overview' && 'Vue d\'ensemble'}
-            {view === 'claims' && 'Quality Claims'}
-            {view === 'incidents' && 'Quality Incidents'}
-          </button>
-        ))}
-      </div>
-    </div>
-
-    {/* Vue Overview */}
-    {dashboardView === 'overview' && (
-      <div className="space-y-6">
-        {/* KPIs Principaux */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg border-l-4 border-blue-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-xs sm:text-sm font-medium">Réclamations 2024</p>
-                <p className="text-3xl sm:text-4xl font-bold text-gray-900 mt-2">{stats.total2024}</p>
-                <p className="text-xs sm:text-sm text-gray-500 mt-1">Claims Rate: {stats.claimsRate2024}%</p>
+        {activeTab === 'dashboard' && (
+          <div className="space-y-6">
+            {/* Sous-navigation Dashboard */}
+            <div className="bg-white p-3 sm:p-4 rounded-xl shadow-md border border-gray-200">
+              <div className="flex gap-2 sm:gap-3 overflow-x-auto">
+                {['overview', 'claims', 'incidents'].map(view => (
+                  <button
+                    key={view}
+                    onClick={() => setDashboardView(view)}
+                    className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all whitespace-nowrap text-sm sm:text-base ${
+                      dashboardView === view
+                        ? 'bg-green-600 text-white shadow-lg'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {view === 'overview' && 'Vue d\'ensemble'}
+                    {view === 'claims' && 'Quality Claims'}
+                    {view === 'incidents' && 'Quality Incidents'}
+                  </button>
+                ))}
               </div>
-              <TrendingDown className="w-8 h-8 sm:w-12 sm:h-12 text-blue-500" />
             </div>
-          </div>
 
-          <div className="bg-gradient-to-br from-green-500 to-green-600 p-4 sm:p-6 rounded-xl shadow-lg text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100 text-xs sm:text-sm font-medium">Réclamations 2025</p>
-                <p className="text-3xl sm:text-4xl font-bold mt-2">{stats.total2025}</p>
-                <p className="text-xs sm:text-sm text-green-100 mt-1">Claims Rate: {stats.claimsRate2025}%</p>
-              </div>
-              <TrendingUp className="w-8 h-8 sm:w-12 sm:h-12 text-green-200" />
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 p-4 sm:p-6 rounded-xl shadow-lg text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-yellow-100 text-xs sm:text-sm font-medium">En Cours</p>
-                <p className="text-3xl sm:text-4xl font-bold mt-2">{stats.enCours}</p>
-              </div>
-              <Clock className="w-8 h-8 sm:w-12 sm:h-12 text-yellow-200" />
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 p-4 sm:p-6 rounded-xl shadow-lg text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-emerald-100 text-xs sm:text-sm font-medium">Clôturées</p>
-                <p className="text-3xl sm:text-4xl font-bold mt-2">{stats.cloturees}</p>
-              </div>
-              <CheckCircle className="w-8 h-8 sm:w-12 sm:h-12 text-emerald-200" />
-            </div>
-          </div>
-        </div>
-
-        {/* Evolution Claims Rate */}
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg overflow-x-auto">
-          <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Evolution du Claims Rate</h3>
-          <div className="min-w-[600px] sm:min-w-0">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-green-100">
-                  <th className="px-3 sm:px-4 py-3 text-left font-bold text-gray-700 text-sm sm:text-base">Fertilisers</th>
-                  <th className="px-3 sm:px-4 py-3 text-center font-bold text-gray-700 text-sm sm:text-base">2022</th>
-                  <th className="px-3 sm:px-4 py-3 text-center font-bold text-gray-700 text-sm sm:text-base">2023</th>
-                  <th className="px-3 sm:px-4 py-3 text-center font-bold text-gray-700 text-sm sm:text-base">2024</th>
-                  <th className="px-3 sm:px-4 py-3 text-center font-bold text-gray-700 text-sm sm:text-base">2025</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b">
-                  <td className="px-3 sm:px-4 py-4 font-semibold text-sm sm:text-base">Claims Rate</td>
-                  <td className="px-3 sm:px-4 py-4 text-center text-base sm:text-lg font-bold text-red-600">2.58%</td>
-                  <td className="px-3 sm:px-4 py-4 text-center text-base sm:text-lg font-bold text-orange-600">2.74%</td>
-                  <td className="px-3 sm:px-4 py-4 text-center text-base sm:text-lg font-bold text-yellow-600">2.6%</td>
-                  <td className="px-3 sm:px-4 py-4 text-center text-base sm:text-lg font-bold text-green-600">2.0%</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div className="mt-4 p-3 sm:p-4 bg-green-50 rounded-lg border border-green-200">
-            <p className="text-green-800 font-semibold flex items-center gap-2 text-sm sm:text-base">
-              <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5" />
-              Amélioration de 0.6% du Claims Rate entre 2024 et 2025
-            </p>
-          </div>
-        </div>
-
-        {/* Graphiques côte à côte */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Répartition par Famille Engrais */}
-          <div className="bg-white p-6 rounded-xl shadow-lg">
-            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <PieChart className="w-6 h-6 text-green-600" />
-              Répartition par Famille Engrais 2025
-            </h3>
-            <div className="space-y-3">
-              {produitStats.map(prod => {
-                const percentage = ((prod.count / 30) * 100).toFixed(0);
-                return (
-                  <div key={prod.produit}>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="font-semibold text-gray-700">{prod.produit}</span>
-                      <span className="text-gray-600 font-bold">{prod.count} ({percentage}%)</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-4">
-                      <div 
-                        className={`${prod.color} h-4 rounded-full transition-all`}
-                        style={{ width: `${percentage}%` }}
-                      ></div>
+            {/* Vue Overview */}
+            {dashboardView === 'overview' && (
+              <div className="space-y-6">
+                {/* KPIs Principaux */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                  <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg border-l-4 border-blue-500">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-gray-600 text-xs sm:text-sm font-medium">Réclamations 2024</p>
+                        <p className="text-3xl sm:text-4xl font-bold text-gray-900 mt-2">{stats.total2024}</p>
+                        <p className="text-xs sm:text-sm text-gray-500 mt-1">Claims Rate: {stats.claimsRate2024}%</p>
+                      </div>
+                      <TrendingDown className="w-8 h-8 sm:w-12 sm:h-12 text-blue-500" />
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
 
-          {/* Répartition Géographique */}
-          <div className="bg-white p-6 rounded-xl shadow-lg">
-            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <MapPin className="w-6 h-6 text-blue-600" />
-              Répartition par Régions 2025
-            </h3>
-            <div className="space-y-3">
-              {regionStats.map(region => (
-                <div key={region.region}>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-semibold text-gray-700">{region.region}</span>
-                    <span className="text-gray-600 font-bold">{region.count} ({region.percentage}%)</span>
+                  <div className="bg-gradient-to-br from-green-500 to-green-600 p-4 sm:p-6 rounded-xl shadow-lg text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-green-100 text-xs sm:text-sm font-medium">Réclamations 2025</p>
+                        <p className="text-3xl sm:text-4xl font-bold mt-2">{stats.total2025}</p>
+                        <p className="text-xs sm:text-sm text-green-100 mt-1">Claims Rate: {stats.claimsRate2025}%</p>
+                      </div>
+                      <TrendingUp className="w-8 h-8 sm:w-12 sm:h-12 text-green-200" />
+                    </div>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-4">
-                    <div 
-                      className="bg-blue-600 h-4 rounded-full transition-all"
-                      style={{ width: `${region.percentage}%` }}
-                    ></div>
+
+                  <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 p-4 sm:p-6 rounded-xl shadow-lg text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-yellow-100 text-xs sm:text-sm font-medium">En Cours</p>
+                        <p className="text-3xl sm:text-4xl font-bold mt-2">{stats.enCours}</p>
+                      </div>
+                      <Clock className="w-8 h-8 sm:w-12 sm:h-12 text-yellow-200" />
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 p-4 sm:p-6 rounded-xl shadow-lg text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-emerald-100 text-xs sm:text-sm font-medium">Clôturées</p>
+                        <p className="text-3xl sm:text-4xl font-bold mt-2">{stats.cloturees}</p>
+                      </div>
+                      <CheckCircle className="w-8 h-8 sm:w-12 sm:h-12 text-emerald-200" />
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
 
-        {/* Répartition par Type */}
-        <div className="bg-white p-6 rounded-xl shadow-lg">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">Répartition par Type d'Incident - Aspects Physiques (34)</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {incidentTypes.map(incident => (
-              <div key={incident.type} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-gray-700">{incident.type}</span>
-                  <span className={`${incident.color} text-white px-3 py-1 rounded-full font-bold`}>
-                    {incident.count}
-                  </span>
+                {/* Evolution Claims Rate */}
+                <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg overflow-x-auto">
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Evolution du Claims Rate</h3>
+                  <div className="min-w-[600px] sm:min-w-0">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-green-100">
+                          <th className="px-3 sm:px-4 py-3 text-left font-bold text-gray-700 text-sm sm:text-base">Fertilisers</th>
+                          <th className="px-3 sm:px-4 py-3 text-center font-bold text-gray-700 text-sm sm:text-base">2022</th>
+                          <th className="px-3 sm:px-4 py-3 text-center font-bold text-gray-700 text-sm sm:text-base">2023</th>
+                          <th className="px-3 sm:px-4 py-3 text-center font-bold text-gray-700 text-sm sm:text-base">2024</th>
+                          <th className="px-3 sm:px-4 py-3 text-center font-bold text-gray-700 text-sm sm:text-base">2025</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b">
+                          <td className="px-3 sm:px-4 py-4 font-semibold text-sm sm:text-base">Claims Rate</td>
+                          <td className="px-3 sm:px-4 py-4 text-center text-base sm:text-lg font-bold text-red-600">2.58%</td>
+                          <td className="px-3 sm:px-4 py-4 text-center text-base sm:text-lg font-bold text-orange-600">2.74%</td>
+                          <td className="px-3 sm:px-4 py-4 text-center text-base sm:text-lg font-bold text-yellow-600">2.6%</td>
+                          <td className="px-3 sm:px-4 py-4 text-center text-base sm:text-lg font-bold text-green-600">2.0%</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="mt-4 p-3 sm:p-4 bg-green-50 rounded-lg border border-green-200">
+                    <p className="text-green-800 font-semibold flex items-center gap-2 text-sm sm:text-base">
+                      <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5" />
+                      Amélioration de 0.6% du Claims Rate entre 2024 et 2025
+                    </p>
+                  </div>
+                </div>
+
+                {/* Graphiques côte à côte */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Répartition par Famille Engrais */}
+                  <div className="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <PieChart className="w-6 h-6 text-green-600" />
+                      Répartition par Famille Engrais 2025
+                    </h3>
+                    <div className="space-y-3">
+                      {produitStats.map(prod => {
+                        const percentage = ((prod.count / 30) * 100).toFixed(0);
+                        return (
+                          <div key={prod.produit}>
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="font-semibold text-gray-700">{prod.produit}</span>
+                              <span className="text-gray-600 font-bold">{prod.count} ({percentage}%)</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-4">
+                              <div 
+                                className={`${prod.color} h-4 rounded-full transition-all`}
+                                style={{ width: `${percentage}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Répartition Géographique */}
+                  <div className="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <MapPin className="w-6 h-6 text-blue-600" />
+                      Répartition par Régions 2025
+                    </h3>
+                    <div className="space-y-3">
+                      {regionStats.map(region => (
+                        <div key={region.region}>
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="font-semibold text-gray-700">{region.region}</span>
+                            <span className="text-gray-600 font-bold">{region.count} ({region.percentage}%)</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-4">
+                            <div 
+                              className="bg-blue-600 h-4 rounded-full transition-all"
+                              style={{ width: `${region.percentage}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Répartition par Type */}
+                <div className="bg-white p-6 rounded-xl shadow-lg">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Répartition par Type d'Incident - Aspects Physiques (34)</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {incidentTypes.map(incident => (
+                      <div key={incident.type} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-gray-700">{incident.type}</span>
+                          <span className={`${incident.color} text-white px-3 py-1 rounded-full font-bold`}>
+                            {incident.count}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <p className="text-sm text-gray-700">
+                      <span className="font-bold">Chimique:</span> 3 (Composition, Humidité, Métaux lourds)
+                    </p>
+                  </div>
+                </div>
+
+                {/* Top Clients */}
+                <div className="bg-gradient-to-br from-green-50 to-green-100 p-8 rounded-xl shadow-lg border-2 border-green-200">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                    <Users className="w-8 h-8 text-green-600" />
+                    TOP 5 Clients / Claims
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    {topClients.map((client, idx) => (
+                      <div key={client.client} className="bg-white p-6 rounded-xl shadow-md text-center border-2 border-green-300">
+                        <div className="text-4xl font-bold text-green-600 mb-2">#{idx + 1}</div>
+                        <p className="font-bold text-gray-900 text-lg mb-2">{client.client}</p>
+                        <p className="text-3xl font-bold text-green-700">{client.claims}</p>
+                        <p className="text-sm text-gray-600 mt-1">réclamations</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
-          <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-            <p className="text-sm text-gray-700">
-              <span className="font-bold">Chimique:</span> 3 (Composition, Humidité, Métaux lourds)
-            </p>
-          </div>
-        </div>
+            )}
 
-        {/* Top Clients */}
-        <div className="bg-gradient-to-br from-green-50 to-green-100 p-8 rounded-xl shadow-lg border-2 border-green-200">
-          <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-            <Users className="w-8 h-8 text-green-600" />
-            TOP 5 Clients / Claims
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            {topClients.map((client, idx) => (
-              <div key={client.client} className="bg-white p-6 rounded-xl shadow-md text-center border-2 border-green-300">
-                <div className="text-4xl font-bold text-green-600 mb-2">#{idx + 1}</div>
-                <p className="font-bold text-gray-900 text-lg mb-2">{client.client}</p>
-                <p className="text-3xl font-bold text-green-700">{client.claims}</p>
-                <p className="text-sm text-gray-600 mt-1">réclamations</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    )}
+            {/* Vue Claims */}
+            {dashboardView === 'claims' && (
+              <div className="space-y-6">
+                {/* Evolution 2024-2025 */}
+                <div className="bg-white p-6 rounded-xl shadow-lg">
+                  <h3 className="text-xl font-bold text-gray-900 mb-6">Evolution du Nombre de Réclamations 2024-2025</h3>
+                  <div className="flex items-end justify-around gap-8 h-80">
+                    <div className="flex flex-col items-center">
+                      <div className="bg-gradient-to-t from-green-600 to-green-400 rounded-t-lg w-24 transition-all hover:shadow-xl" style={{ height: '230px' }}>
+                        <div className="text-white font-bold text-3xl mt-4 text-center">{stats.total2024}</div>
+                      </div>
+                      <p className="mt-3 font-bold text-gray-700">2024</p>
+                      <p className="text-sm text-gray-500">(2.6%)</p>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <div className="bg-gradient-to-t from-yellow-500 to-yellow-300 rounded-t-lg w-24 transition-all hover:shadow-xl" style={{ height: '150px' }}>
+                        <div className="text-white font-bold text-3xl mt-4 text-center">{stats.total2025}</div>
+                      </div>
+                      <p className="mt-3 font-bold text-gray-700">2025</p>
+                      <p className="text-sm text-gray-500">(2.0%)</p>
+                    </div>
+                  </div>
+                </div>
 
-    {/* Vue Claims */}
-    {dashboardView === 'claims' && (
-      <div className="space-y-6">
-        {/* Evolution 2024-2025 */}
-        <div className="bg-white p-6 rounded-xl shadow-lg">
-          <h3 className="text-xl font-bold text-gray-900 mb-6">Evolution du Nombre de Réclamations 2024-2025</h3>
-          <div className="flex items-end justify-around gap-8 h-80">
-            <div className="flex flex-col items-center">
-              <div className="bg-gradient-to-t from-green-600 to-green-400 rounded-t-lg w-24 transition-all hover:shadow-xl" style={{ height: '230px' }}>
-                <div className="text-white font-bold text-3xl mt-4 text-center">{stats.total2024}</div>
-              </div>
-              <p className="mt-3 font-bold text-gray-700">2024</p>
-              <p className="text-sm text-gray-500">(2.6%)</p>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="bg-gradient-to-t from-yellow-500 to-yellow-300 rounded-t-lg w-24 transition-all hover:shadow-xl" style={{ height: '150px' }}>
-                <div className="text-white font-bold text-3xl mt-4 text-center">{stats.total2025}</div>
-              </div>
-              <p className="mt-3 font-bold text-gray-700">2025</p>
-              <p className="text-sm text-gray-500">(2.0%)</p>
-            </div>
-          </div>
-        </div>
+                {/* Zoom TSP 2024 */}
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl shadow-lg border-2 border-blue-300">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <Package className="w-7 h-7 text-blue-600" />
+                    Zoom sur les Réclamations TSP reçues en 2024
+                  </h3>
+                  <div className="grid grid-cols-3 gap-4 mb-4">
+                    <div className="bg-white p-4 rounded-lg shadow text-center">
+                      <p className="text-sm text-gray-600">Brésil</p>
+                      <p className="text-4xl font-bold text-blue-600">12</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow text-center">
+                      <p className="text-sm text-gray-600">France</p>
+                      <p className="text-4xl font-bold text-blue-600">3</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow text-center">
+                      <p className="text-sm text-gray-600">Inde</p>
+                      <p className="text-4xl font-bold text-blue-600">1</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-green-600 text-white p-4 rounded-lg shadow text-center">
+                      <p className="text-sm">Site JORF</p>
+                      <p className="text-4xl font-bold">12</p>
+                    </div>
+                    <div className="bg-orange-600 text-white p-4 rounded-lg shadow text-center">
+                      <p className="text-sm">Site SAFI</p>
+                      <p className="text-4xl font-bold">5</p>
+                    </div>
+                  </div>
+                </div>
 
-        {/* Zoom TSP 2024 */}
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl shadow-lg border-2 border-blue-300">
-          <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Package className="w-7 h-7 text-blue-600" />
-            Zoom sur les Réclamations TSP reçues en 2024
-          </h3>
-          <div className="grid grid-cols-3 gap-4 mb-4">
-            <div className="bg-white p-4 rounded-lg shadow text-center">
-              <p className="text-sm text-gray-600">Brésil</p>
-              <p className="text-4xl font-bold text-blue-600">12</p>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow text-center">
-              <p className="text-sm text-gray-600">France</p>
-              <p className="text-4xl font-bold text-blue-600">3</p>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow text-center">
-              <p className="text-sm text-gray-600">Inde</p>
-              <p className="text-4xl font-bold text-blue-600">1</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-green-600 text-white p-4 rounded-lg shadow text-center">
-              <p className="text-sm">Site JORF</p>
-              <p className="text-4xl font-bold">12</p>
-            </div>
-            <div className="bg-orange-600 text-white p-4 rounded-lg shadow text-center">
-              <p className="text-sm">Site SAFI</p>
-              <p className="text-4xl font-bold">5</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Zoom TSP 2025 */}
-        <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl shadow-lg border-2 border-green-300">
-          <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Package className="w-7 h-7 text-green-600" />
-            Zoom sur les Réclamations TSP reçues en 2025 YTD
-          </h3>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-white p-4 rounded-lg shadow text-center">
-              <p className="text-sm text-gray-600">Brésil</p>
-              <p className="text-4xl font-bold text-green-600">5</p>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow text-center">
-              <p className="text-sm text-gray-600">Inde</p>
-              <p className="text-4xl font-bold text-green-600">4</p>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow text-center">
-              <p className="text-sm text-gray-600">Germany</p>
-              <p className="text-4xl font-bold text-green-600">3</p>
-            </div>
-          </div>
-          <div className="mt-4 p-4 bg-white rounded-lg shadow">
-            <p className="text-sm text-gray-700 mb-2 font-semibold">Problèmes principaux:</p>
-            <div className="grid grid-cols-3 gap-2">
-              <span className="bg-red-100 text-red-800 px-3 py-2 rounded text-sm font-semibold">Poussière: 5</span>
-              <span className="bg-orange-100 text-orange-800 px-3 py-2 rounded text-sm font-semibold">Prise en masse: 4</span>
-              <span className="bg-yellow-100 text-yellow-800 px-3 py-2 rounded text-sm font-semibold">Contamination: 3</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    )}
-
-    {/* Vue Incidents */}
-    {dashboardView === 'incidents' && (
-      <div className="space-y-6">
-        {/* Statistiques Incidents */}
-        <div className="grid grid-cols-4 gap-4">
-          <div className="bg-white p-6 rounded-xl shadow-lg text-center">
-            <p className="text-gray-600 text-sm mb-2">Cargaisons Inspectées</p>
-            <p className="text-5xl font-bold text-gray-900">619</p>
-          </div>
-          <div className="bg-green-600 text-white p-6 rounded-xl shadow-lg text-center">
-            <p className="text-green-100 text-sm mb-2">Sans Incident</p>
-            <p className="text-5xl font-bold">411</p>
-            <p className="text-sm mt-1">66%</p>
-          </div>
-          <div className="bg-yellow-600 text-white p-6 rounded-xl shadow-lg text-center">
-            <p className="text-yellow-100 text-sm mb-2">Avec Incident</p>
-            <p className="text-5xl font-bold">207</p>
-            <p className="text-sm mt-1">34%</p>
-          </div>
-          <div className="bg-red-600 text-white p-6 rounded-xl shadow-lg text-center">
-            <p className="text-red-100 text-sm mb-2">Avec Réclamation</p>
-            <p className="text-5xl font-bold">16</p>
-            <p className="text-sm mt-1">X1.7</p>
-          </div>
-        </div>
-
-        {/* Types d'Incidents 2025 */}
-        <div className="bg-white p-6 rounded-xl shadow-lg">
-          <h3 className="text-xl font-bold text-gray-900 mb-6">Répartition des Types d'Incidents Qualité 2025</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div className="text-center">
-              <div className="bg-gray-400 rounded-full w-32 h-32 mx-auto flex items-center justify-center text-white">
-                <div>
-                  <p className="text-3xl font-bold">24%</p>
-                  <p className="text-xs">Contamination</p>
+                {/* Zoom TSP 2025 */}
+                <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl shadow-lg border-2 border-green-300">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <Package className="w-7 h-7 text-green-600" />
+                    Zoom sur les Réclamations TSP reçues en 2025 YTD
+                  </h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-white p-4 rounded-lg shadow text-center">
+                      <p className="text-sm text-gray-600">Brésil</p>
+                      <p className="text-4xl font-bold text-green-600">5</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow text-center">
+                      <p className="text-sm text-gray-600">Inde</p>
+                      <p className="text-4xl font-bold text-green-600">4</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow text-center">
+                      <p className="text-sm text-gray-600">Germany</p>
+                      <p className="text-4xl font-bold text-green-600">3</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 p-4 bg-white rounded-lg shadow">
+                    <p className="text-sm text-gray-700 mb-2 font-semibold">Problèmes principaux:</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <span className="bg-red-100 text-red-800 px-3 py-2 rounded text-sm font-semibold">Poussière: 5</span>
+                      <span className="bg-orange-100 text-orange-800 px-3 py-2 rounded text-sm font-semibold">Prise en masse: 4</span>
+                      <span className="bg-yellow-100 text-yellow-800 px-3 py-2 rounded text-sm font-semibold">Contamination: 3</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="text-center">
-              <div className="bg-gray-700 rounded-full w-32 h-32 mx-auto flex items-center justify-center text-white">
-                <div>
-                  <p className="text-3xl font-bold">23%</p>
-                  <p className="text-xs">Caked Product</p>
-                </div>
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="bg-green-500 rounded-full w-32 h-32 mx-auto flex items-center justify-center text-white">
-                <div>
-                  <p className="text-3xl font-bold">22%</p>
-                  <p className="text-xs">Dusty Product</p>
-                </div>
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="bg-green-700 rounded-full w-32 h-32 mx-auto flex items-center justify-center text-white">
-                <div>
-                  <p className="text-3xl font-bold">12%</p>
-                  <p className="text-xs">Foreign Body</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="mt-6 grid grid-cols-3 gap-4">
-            <div className="bg-gray-100 p-3 rounded text-center">
-              <p className="text-sm text-gray-600">Wet Product</p>
-              <p className="text-2xl font-bold text-gray-900">5%</p>
-            </div>
-            <div className="bg-gray-100 p-3 rounded text-center">
-              <p className="text-sm text-gray-600">Couleur</p>
-              <p className="text-2xl font-bold text-gray-900">7%</p>
-            </div>
-            <div className="bg-gray-100 p-3 rounded text-center">
-              <p className="text-sm text-gray-600">Others</p>
-              <p className="text-2xl font-bold text-gray-900">7%</p>
-            </div>
-          </div>
-        </div>
+            )}
 
-        {/* Evolution Taux Incidents */}
-        <div className="bg-white p-6 rounded-xl shadow-lg">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">Evolution du Taux d'Incidents et Nombre de Navires</h3>
-          <div className="grid grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <p className="text-sm text-gray-600 mb-2">2024</p>
-              <p className="text-4xl font-bold text-blue-600">619</p>
-              <p className="text-sm text-gray-500 mt-1">53% sans incident</p>
-            </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <p className="text-sm text-gray-600 mb-2">Q1 2025</p>
-              <p className="text-4xl font-bold text-green-600">150</p>
-              <p className="text-sm text-gray-500 mt-1">46% sans incident</p>
-            </div>
-            <div className="text-center p-4 bg-yellow-50 rounded-lg">
-              <p className="text-sm text-gray-600 mb-2">Q2 2025</p>
-              <p className="text-4xl font-bold text-yellow-600">159</p>
-              <p className="text-sm text-gray-500 mt-1">54% sans incident</p>
-            </div>
-            <div className="text-center p-4 bg-orange-50 rounded-lg">
-              <p className="text-sm text-gray-600 mb-2">Q3 2025</p>
-              <p className="text-4xl font-bold text-orange-600">167</p>
-              <p className="text-sm text-gray-500 mt-1">55% sans incident</p>
-            </div>
+            {/* Vue Incidents */}
+            {dashboardView === 'incidents' && (
+              <div className="space-y-6">
+                {/* Statistiques Incidents */}
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="bg-white p-6 rounded-xl shadow-lg text-center">
+                    <p className="text-gray-600 text-sm mb-2">Cargaisons Inspectées</p>
+                    <p className="text-5xl font-bold text-gray-900">619</p>
+                  </div>
+                  <div className="bg-green-600 text-white p-6 rounded-xl shadow-lg text-center">
+                    <p className="text-green-100 text-sm mb-2">Sans Incident</p>
+                    <p className="text-5xl font-bold">411</p>
+                    <p className="text-sm mt-1">66%</p>
+                  </div>
+                  <div className="bg-yellow-600 text-white p-6 rounded-xl shadow-lg text-center">
+                    <p className="text-yellow-100 text-sm mb-2">Avec Incident</p>
+                    <p className="text-5xl font-bold">207</p>
+                    <p className="text-sm mt-1">34%</p>
+                  </div>
+                  <div className="bg-red-600 text-white p-6 rounded-xl shadow-lg text-center">
+                    <p className="text-red-100 text-sm mb-2">Avec Réclamation</p>
+                    <p className="text-5xl font-bold">16</p>
+                    <p className="text-sm mt-1">X1.7</p>
+                  </div>
+                </div>
+
+                {/* Types d'Incidents 2025 */}
+                <div className="bg-white p-6 rounded-xl shadow-lg">
+                  <h3 className="text-xl font-bold text-gray-900 mb-6">Répartition des Types d'Incidents Qualité 2025</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <div className="text-center">
+                      <div className="bg-gray-400 rounded-full w-32 h-32 mx-auto flex items-center justify-center text-white">
+                        <div>
+                          <p className="text-3xl font-bold">24%</p>
+                          <p className="text-xs">Contamination</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="bg-gray-700 rounded-full w-32 h-32 mx-auto flex items-center justify-center text-white">
+                        <div>
+                          <p className="text-3xl font-bold">23%</p>
+                          <p className="text-xs">Caked Product</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="bg-green-500 rounded-full w-32 h-32 mx-auto flex items-center justify-center text-white">
+                        <div>
+                          <p className="text-3xl font-bold">22%</p>
+                          <p className="text-xs">Dusty Product</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="bg-green-700 rounded-full w-32 h-32 mx-auto flex items-center justify-center text-white">
+                        <div>
+                          <p className="text-3xl font-bold">12%</p>
+                          <p className="text-xs">Foreign Body</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-6 grid grid-cols-3 gap-4">
+                    <div className="bg-gray-100 p-3 rounded text-center">
+                      <p className="text-sm text-gray-600">Wet Product</p>
+                      <p className="text-2xl font-bold text-gray-900">5%</p>
+                    </div>
+                    <div className="bg-gray-100 p-3 rounded text-center">
+                      <p className="text-sm text-gray-600">Couleur</p>
+                      <p className="text-2xl font-bold text-gray-900">7%</p>
+                    </div>
+                    <div className="bg-gray-100 p-3 rounded text-center">
+                      <p className="text-sm text-gray-600">Others</p>
+                      <p className="text-2xl font-bold text-gray-900">7%</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Evolution Taux Incidents */}
+                <div className="bg-white p-6 rounded-xl shadow-lg">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Evolution du Taux d'Incidents et Nombre de Navires</h3>
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <p className="text-sm text-gray-600 mb-2">2024</p>
+                      <p className="text-4xl font-bold text-blue-600">619</p>
+                      <p className="text-sm text-gray-500 mt-1">53% sans incident</p>
+                    </div>
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <p className="text-sm text-gray-600 mb-2">Q1 2025</p>
+                      <p className="text-4xl font-bold text-green-600">150</p>
+                      <p className="text-sm text-gray-500 mt-1">46% sans incident</p>
+                    </div>
+                    <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                      <p className="text-sm text-gray-600 mb-2">Q2 2025</p>
+                      <p className="text-4xl font-bold text-yellow-600">159</p>
+                      <p className="text-sm text-gray-500 mt-1">54% sans incident</p>
+                    </div>
+                    <div className="text-center p-4 bg-orange-50 rounded-lg">
+                      <p className="text-sm text-gray-600 mb-2">Q3 2025</p>
+                      <p className="text-4xl font-bold text-orange-600">167</p>
+                      <p className="text-sm text-gray-500 mt-1">55% sans incident</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      </div>
-    )}
-  </div>
-)}
+        )}
 
         {/* GESTION RÉCLAMATIONS */}
         {activeTab === 'reclamations' && (
@@ -1110,7 +1104,7 @@ export default function NutricropsQualityExcellence() {
           </div>
         )}
 
-        {/* QUALITY INCIDENTS - SECTION CORRIGÉE */}
+        {/* QUALITY INCIDENTS */}
         {activeTab === 'incidents' && (
           <div className="space-y-6">
             <div className="bg-gradient-to-r from-orange-600 to-red-600 text-white p-8 rounded-xl shadow-2xl">
@@ -1129,7 +1123,7 @@ export default function NutricropsQualityExcellence() {
               </div>
             </div>
 
-            {/* Liste des Incidents - CORRIGÉE */}
+            {/* Liste des Incidents */}
             <div className="space-y-4">
               {incidents.map(incident => (
                 <div key={incident.id} className="bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all">
@@ -1160,12 +1154,12 @@ export default function NutricropsQualityExcellence() {
                           </div>
                           <div>
                             <span className="text-gray-500">Date détection:</span>
-                            <p className="font-semibold text-gray-900">{formatDate(incident.date_detection)}</p>
+                            <p className="font-semibold text-gray-900">{incident.dateDetection}</p>
                           </div>
                         </div>
 
                         <div className="bg-orange-50 border-l-4 border-orange-500 p-3 rounded mb-3">
-                          <p className="text-sm font-medium text-gray-900">{incident.type_incident}</p>
+                          <p className="text-sm font-medium text-gray-900">{incident.typeIncident}</p>
                           <p className="text-xs text-gray-600 mt-1">Inspecteur: {incident.inspecteur}</p>
                         </div>
 
@@ -1176,11 +1170,11 @@ export default function NutricropsQualityExcellence() {
                           </div>
                           <div>
                             <span className="text-gray-600">Quantité: </span>
-                            <span className="font-semibold text-gray-900">{incident.quantite?.toLocaleString()} MT</span>
+                            <span className="font-semibold text-gray-900">{incident.quantite.toLocaleString()} MT</span>
                           </div>
                           <div>
                             <span className="text-gray-600">Destination: </span>
-                            <span className="font-semibold text-gray-900">{incident.port_destination}</span>
+                            <span className="font-semibold text-gray-900">{incident.portDestination}</span>
                           </div>
                         </div>
                       </div>
@@ -1211,21 +1205,21 @@ export default function NutricropsQualityExcellence() {
                 <p className="text-green-100 text-sm mb-2 font-medium">Résolus</p>
                 <p className="text-5xl font-bold">{incidents.filter(i => i.statut === 'resolu').length}</p>
                 <p className="text-sm mt-1">
-                  {incidents.length > 0 ? ((incidents.filter(i => i.statut === 'resolu').length / incidents.length) * 100).toFixed(0) : 0}%
+                  {((incidents.filter(i => i.statut === 'resolu').length / incidents.length) * 100).toFixed(0)}%
                 </p>
               </div>
               <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 p-6 rounded-xl shadow-lg text-center text-white">
                 <p className="text-yellow-100 text-sm mb-2 font-medium">En analyse</p>
                 <p className="text-5xl font-bold">{incidents.filter(i => i.statut === 'en_analyse').length}</p>
                 <p className="text-sm mt-1">
-                  {incidents.length > 0 ? ((incidents.filter(i => i.statut === 'en_analyse').length / incidents.length) * 100).toFixed(0) : 0}%
+                  {((incidents.filter(i => i.statut === 'en_analyse').length / incidents.length) * 100).toFixed(0)}%
                 </p>
               </div>
               <div className="bg-gradient-to-br from-red-500 to-red-600 p-6 rounded-xl shadow-lg text-center text-white">
                 <p className="text-red-100 text-sm mb-2 font-medium">Devenus réclamations</p>
                 <p className="text-5xl font-bold">{incidents.filter(i => i.statut === 'transforme_reclamation').length}</p>
                 <p className="text-sm mt-1">
-                  {incidents.length > 0 ? ((incidents.filter(i => i.statut === 'transforme_reclamation').length / incidents.length) * 100).toFixed(0) : 0}%
+                  {((incidents.filter(i => i.statut === 'transforme_reclamation').length / incidents.length) * 100).toFixed(0)}%
                 </p>
               </div>
             </div>
@@ -1410,7 +1404,7 @@ export default function NutricropsQualityExcellence() {
         </div>
       )}
 
-      {/* MODAL NOUVEL INCIDENT - CORRIGÉ */}
+      {/* MODAL NOUVEL INCIDENT */}
       {showNewIncident && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
@@ -1497,6 +1491,19 @@ export default function NutricropsQualityExcellence() {
                 <textarea rows="4" placeholder="Décrire l'incident qualité observé en détail..." className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"></textarea>
               </div>
 
+              <div className="bg-purple-50 border-2 border-purple-300 rounded-lg p-4">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                  />
+                  <div>
+                    <span className="text-sm font-bold text-purple-900">Il s'agit d'un nouveau produit</span>
+                    <p className="text-xs text-purple-700 mt-1">Cocher cette case si c'est la première commercialisation de ce produit</p>
+                  </div>
+                </label>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Sévérité *</label>
@@ -1531,18 +1538,18 @@ export default function NutricropsQualityExcellence() {
               <div className="flex gap-4 pt-4">
                 <button 
                   onClick={() => {
-                    // Récupération des données du formulaire avec les bons noms de colonnes
+                    // Récupération des données du formulaire (version simplifiée pour l'exemple)
                     const newIncident = {
                       client: 'Nouveau Client',
                       navire: 'Nouveau Navire',
                       site: 'OIJ',
                       produit: 'TSP EURO',
                       quantite: 5000,
-                      type_incident: 'Contamination',  // ← Underscore
+                      typeIncident: 'Contamination',
                       severite: 'moyenne',
                       statut: 'detecte',
-                      date_chargement: new Date().toISOString().split('T')[0],  // ← Underscore
-                      port_destination: 'Port inconnu',  // ← Underscore
+                      dateChargement: new Date().toISOString().split('T')[0],
+                      portDestination: 'Port inconnu',
                       inspecteur: 'Inspecteur'
                     };
                     addNewIncident(newIncident);
