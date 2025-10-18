@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, CheckCircle, Clock, FileText, Ship, Package, Users, Calendar, Mail, Filter, Search, Plus, Download, TrendingUp, TrendingDown, BarChart3, PieChart, X, MapPin, Factory, Droplet, Wind, Circle, Edit, Save, Trash2 } from 'lucide-react';
-import { supabase } from './lib/supabase';
+import { AlertCircle, CheckCircle, Clock, FileText, Ship, Package, Users, Calendar, Mail, Filter, Search, Plus, Download, TrendingUp, TrendingDown, BarChart3, PieChart, X, MapPin, Edit, Save, Trash2 } from 'lucide-react';
+import { supabase } from './supabaseClient';
 
 export default function NutricropsQualityExcellence() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedReclamation, setSelectedReclamation] = useState(null);
-  const [selectedIncident, setSelectedIncident] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterRegion, setFilterRegion] = useState('all');
   const [filterProduit, setFilterProduit] = useState('all');
@@ -27,8 +26,8 @@ export default function NutricropsQualityExcellence() {
     cloturees: 0,
     montantTotalDemande: 0,
     montantTotalDedommage: 0,
-    claimsRate2024: 0,
-    claimsRate2025: 0
+    claimsRate2024: '0.0',
+    claimsRate2025: '0.0'
   });
   const [produitStats, setProduitStats] = useState([]);
   const [regionStats, setRegionStats] = useState([]);
@@ -47,7 +46,6 @@ export default function NutricropsQualityExcellence() {
         loadReclamations(),
         loadIncidents()
       ]);
-      // Charger les stats après avoir chargé les données principales
       await loadDashboardStats();
       await loadProduitStats();
       await loadRegionStats();
@@ -69,7 +67,6 @@ export default function NutricropsQualityExcellence() {
       if (error) {
         console.error('Error loading reclamations:', error);
       } else {
-        console.log('Reclamations loaded:', data);
         setReclamations(data || []);
       }
     } catch (error) {
@@ -87,7 +84,6 @@ export default function NutricropsQualityExcellence() {
       if (error) {
         console.error('Error loading incidents:', error);
       } else {
-        console.log('Incidents loaded:', data);
         setIncidents(data || []);
       }
     } catch (error) {
@@ -282,8 +278,6 @@ export default function NutricropsQualityExcellence() {
         inspecteur: formData.inspecteur
       };
 
-      console.log('Adding new incident:', newIncident);
-
       const { data, error } = await supabase
         .from('incidents')
         .insert([newIncident])
@@ -293,7 +287,6 @@ export default function NutricropsQualityExcellence() {
         console.error('Error adding incident:', error);
         alert(`Erreur lors de l'ajout de l'incident: ${error.message}`);
       } else {
-        console.log('Incident added successfully:', data);
         setIncidents([data[0], ...incidents]);
         setShowNewIncident(false);
       }
