@@ -20,7 +20,16 @@ export default function NutricropsQualityExcellence() {
   // États pour les données
   const [reclamations, setReclamations] = useState([]);
   const [incidents, setIncidents] = useState([]);
-  const [dashboardStats, setDashboardStats] = useState({});
+  const [dashboardStats, setDashboardStats] = useState({
+    total2024: 0,
+    total2025: 0,
+    enCours: 0,
+    cloturees: 0,
+    montantTotalDemande: 0,
+    montantTotalDedommage: 0,
+    claimsRate2024: 0,
+    claimsRate2025: 0
+  });
   const [produitStats, setProduitStats] = useState([]);
   const [regionStats, setRegionStats] = useState([]);
   const [incidentTypes, setIncidentTypes] = useState([]);
@@ -33,174 +42,223 @@ export default function NutricropsQualityExcellence() {
 
   const loadAllData = async () => {
     setLoading(true);
-    await Promise.all([
-      loadReclamations(),
-      loadIncidents(),
-      loadDashboardStats(),
-      loadProduitStats(),
-      loadRegionStats(),
-      loadIncidentTypes(),
-      loadTopClients()
-    ]);
+    try {
+      await Promise.all([
+        loadReclamations(),
+        loadIncidents()
+      ]);
+      // Charger les stats après avoir chargé les données principales
+      await loadDashboardStats();
+      await loadProduitStats();
+      await loadRegionStats();
+      await loadIncidentTypes();
+      await loadTopClients();
+    } catch (error) {
+      console.error('Error loading all data:', error);
+    }
     setLoading(false);
   };
 
   const loadReclamations = async () => {
-    const { data, error } = await supabase
-      .from('reclamations')
-      .select('*')
-      .order('date_reception', { ascending: false });
-    
-    if (!error) {
-      setReclamations(data || []);
+    try {
+      const { data, error } = await supabase
+        .from('reclamations')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error loading reclamations:', error);
+      } else {
+        console.log('Reclamations loaded:', data);
+        setReclamations(data || []);
+      }
+    } catch (error) {
+      console.error('Error in loadReclamations:', error);
     }
   };
 
   const loadIncidents = async () => {
-    const { data, error } = await supabase
-      .from('incidents')
-      .select('*')
-      .order('date_detection', { ascending: false });
-    
-    if (!error) {
-      setIncidents(data || []);
+    try {
+      const { data, error } = await supabase
+        .from('incidents')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error loading incidents:', error);
+      } else {
+        console.log('Incidents loaded:', data);
+        setIncidents(data || []);
+      }
+    } catch (error) {
+      console.error('Error in loadIncidents:', error);
     }
   };
 
   const loadDashboardStats = async () => {
-    // Stats pour les réclamations
-    const currentYear = new Date().getFullYear();
-    const lastYear = currentYear - 1;
+    try {
+      const currentYear = new Date().getFullYear();
+      const lastYear = currentYear - 1;
 
-    const { data: currentYearData } = await supabase
-      .from('reclamations')
-      .select('id')
-      .gte('date_reception', `${currentYear}-01-01`)
-      .lte('date_reception', `${currentYear}-12-31`);
+      // Compter les réclamations par année
+      const { data: currentYearData } = await supabase
+        .from('reclamations')
+        .select('id')
+        .gte('created_at', `${currentYear}-01-01`)
+        .lte('created_at', `${currentYear}-12-31`);
 
-    const { data: lastYearData } = await supabase
-      .from('reclamations')
-      .select('id')
-      .gte('date_reception', `${lastYear}-01-01`)
-      .lte('date_reception', `${lastYear}-12-31`);
+      const { data: lastYearData } = await supabase
+        .from('reclamations')
+        .select('id')
+        .gte('created_at', `${lastYear}-01-01`)
+        .lte('created_at', `${lastYear}-12-31`);
 
-    const { data: enCoursData } = await supabase
-      .from('reclamations')
-      .select('id')
-      .eq('statut', 'en_cours');
+      // Compter par statut
+      const { data: enCoursData } = await supabase
+        .from('reclamations')
+        .select('id')
+        .eq('statut', 'en_cours');
 
-    const { data: clotureesData } = await supabase
-      .from('reclamations')
-      .select('id')
-      .eq('statut', 'cloture');
+      const { data: clotureesData } = await supabase
+        .from('reclamations')
+        .select('id')
+        .eq('statut', 'cloture');
 
-    const { data: montantsData } = await supabase
-      .from('reclamations')
-      .select('montant_demande, montant_dedommage');
+      // Calculer les montants
+      const { data: montantsData } = await supabase
+        .from('reclamations')
+        .select('montant_demande, montant_dedommage');
 
-    const totalDemande = montantsData?.reduce((sum, r) => sum + (r.montant_demande || 0), 0) || 0;
-    const totalDedommage = montantsData?.reduce((sum, r) => sum + (r.montant_dedommage || 0), 0) || 0;
+      const totalDemande = montantsData?.reduce((sum, r) => sum + (r.montant_demande || 0), 0) || 0;
+      const totalDedommage = montantsData?.reduce((sum, r) => sum + (r.montant_dedommage || 0), 0) || 0;
 
-    setDashboardStats({
-      total2024: lastYearData?.length || 0,
-      total2025: currentYearData?.length || 0,
-      enCours: enCoursData?.length || 0,
-      cloturees: clotureesData?.length || 0,
-      montantTotalDemande: totalDemande,
-      montantTotalDedommage: totalDedommage,
-      claimsRate2024: lastYearData ? ((lastYearData.length / 1000) * 100).toFixed(1) : 0,
-      claimsRate2025: currentYearData ? ((currentYearData.length / 1000) * 100).toFixed(1) : 0
-    });
+      setDashboardStats({
+        total2024: lastYearData?.length || 0,
+        total2025: currentYearData?.length || 0,
+        enCours: enCoursData?.length || 0,
+        cloturees: clotureesData?.length || 0,
+        montantTotalDemande: totalDemande,
+        montantTotalDedommage: totalDedommage,
+        claimsRate2024: lastYearData ? ((lastYearData.length / 1000) * 100).toFixed(1) : '0.0',
+        claimsRate2025: currentYearData ? ((currentYearData.length / 1000) * 100).toFixed(1) : '0.0'
+      });
+    } catch (error) {
+      console.error('Error loading dashboard stats:', error);
+    }
   };
 
   const loadProduitStats = async () => {
-    const { data, error } = await supabase
-      .from('reclamations')
-      .select('qualite');
+    try {
+      const { data, error } = await supabase
+        .from('reclamations')
+        .select('qualite');
 
-    if (!error && data) {
-      const produitCounts = data.reduce((acc, item) => {
-        acc[item.qualite] = (acc[item.qualite] || 0) + 1;
-        return acc;
-      }, {});
+      if (!error && data) {
+        const produitCounts = data.reduce((acc, item) => {
+          if (item.qualite) {
+            acc[item.qualite] = (acc[item.qualite] || 0) + 1;
+          }
+          return acc;
+        }, {});
 
-      const stats = Object.entries(produitCounts).map(([produit, count]) => ({
-        produit,
-        count,
-        color: getRandomColor()
-      }));
+        const stats = Object.entries(produitCounts).map(([produit, count]) => ({
+          produit,
+          count,
+          color: getRandomColor()
+        }));
 
-      setProduitStats(stats);
+        setProduitStats(stats);
+      }
+    } catch (error) {
+      console.error('Error loading produit stats:', error);
     }
   };
 
   const loadRegionStats = async () => {
-    const { data, error } = await supabase
-      .from('reclamations')
-      .select('region');
+    try {
+      const { data, error } = await supabase
+        .from('reclamations')
+        .select('region');
 
-    if (!error && data) {
-      const regionCounts = data.reduce((acc, item) => {
-        acc[item.region] = (acc[item.region] || 0) + 1;
-        return acc;
-      }, {});
+      if (!error && data) {
+        const regionCounts = data.reduce((acc, item) => {
+          if (item.region) {
+            acc[item.region] = (acc[item.region] || 0) + 1;
+          }
+          return acc;
+        }, {});
 
-      const total = data.length;
-      const stats = Object.entries(regionCounts).map(([region, count]) => ({
-        region,
-        count,
-        percentage: total > 0 ? Math.round((count / total) * 100) : 0
-      }));
+        const total = data.length;
+        const stats = Object.entries(regionCounts).map(([region, count]) => ({
+          region,
+          count,
+          percentage: total > 0 ? Math.round((count / total) * 100) : 0
+        }));
 
-      setRegionStats(stats);
+        setRegionStats(stats);
+      }
+    } catch (error) {
+      console.error('Error loading region stats:', error);
     }
   };
 
   const loadIncidentTypes = async () => {
-    const { data, error } = await supabase
-      .from('reclamations')
-      .select('type_incident');
+    try {
+      const { data, error } = await supabase
+        .from('reclamations')
+        .select('type_incident');
 
-    if (!error && data) {
-      const typeCounts = data.reduce((acc, item) => {
-        acc[item.type_incident] = (acc[item.type_incident] || 0) + 1;
-        return acc;
-      }, {});
+      if (!error && data) {
+        const typeCounts = data.reduce((acc, item) => {
+          if (item.type_incident) {
+            acc[item.type_incident] = (acc[item.type_incident] || 0) + 1;
+          }
+          return acc;
+        }, {});
 
-      const stats = Object.entries(typeCounts).map(([type, count]) => ({
-        type,
-        count,
-        color: getRandomColor()
-      }));
+        const stats = Object.entries(typeCounts).map(([type, count]) => ({
+          type,
+          count,
+          color: getRandomColor()
+        }));
 
-      setIncidentTypes(stats);
+        setIncidentTypes(stats);
+      }
+    } catch (error) {
+      console.error('Error loading incident types:', error);
     }
   };
 
   const loadTopClients = async () => {
-    const { data, error } = await supabase
-      .from('reclamations')
-      .select('client');
+    try {
+      const { data, error } = await supabase
+        .from('reclamations')
+        .select('client');
 
-    if (!error && data) {
-      const clientCounts = data.reduce((acc, item) => {
-        acc[item.client] = (acc[item.client] || 0) + 1;
-        return acc;
-      }, {});
+      if (!error && data) {
+        const clientCounts = data.reduce((acc, item) => {
+          if (item.client) {
+            acc[item.client] = (acc[item.client] || 0) + 1;
+          }
+          return acc;
+        }, {});
 
-      const topClients = Object.entries(clientCounts)
-        .map(([client, claims]) => ({ client, claims }))
-        .sort((a, b) => b.claims - a.claims)
-        .slice(0, 5);
+        const topClients = Object.entries(clientCounts)
+          .map(([client, claims]) => ({ client, claims }))
+          .sort((a, b) => b.claims - a.claims)
+          .slice(0, 5);
 
-      setTopClients(topClients);
+        setTopClients(topClients);
+      }
+    } catch (error) {
+      console.error('Error loading top clients:', error);
     }
   };
 
   const getRandomColor = () => {
     const colors = [
       'bg-green-600', 'bg-yellow-600', 'bg-blue-600', 'bg-teal-600', 
-      'bg-black', 'bg-gray-600', 'bg-red-600', 'bg-orange-600'
+      'bg-red-600', 'bg-orange-600', 'bg-purple-600', 'bg-pink-600'
     ];
     return colors[Math.floor(Math.random() * colors.length)];
   };
@@ -209,35 +267,39 @@ export default function NutricropsQualityExcellence() {
   const addNewIncident = async (formData) => {
     setLoading(true);
     
-    const newIncident = {
-      client: formData.client,
-      navire: formData.navire,
-      site: formData.site,
-      produit: formData.produit,
-      quantite: parseInt(formData.quantite),
-      type_incident: formData.type_incident,
-      severite: formData.severite,
-      statut: formData.statut,
-      date_chargement: formData.date_chargement,
-      port_destination: formData.port_destination,
-      inspecteur: formData.inspecteur,
-      date_detection: new Date().toISOString().split('T')[0]
-    };
+    try {
+      const newIncident = {
+        client: formData.client,
+        navire: formData.navire,
+        site: formData.site,
+        produit: formData.produit,
+        quantite: parseInt(formData.quantite) || 0,
+        type_incident: formData.type_incident,
+        severite: formData.severite,
+        statut: formData.statut,
+        date_chargement: formData.date_chargement,
+        port_destination: formData.port_destination,
+        inspecteur: formData.inspecteur
+      };
 
-    const { data, error } = await supabase
-      .from('incidents')
-      .insert([newIncident])
-      .select();
-    
-    if (!error) {
-      setIncidents([data[0], ...incidents]);
-      setShowNewIncident(false);
-      // Réinitialiser le formulaire
-      document.querySelectorAll('input, select, textarea').forEach(element => {
-        if (element.type !== 'button' && element.type !== 'submit') {
-          element.value = '';
-        }
-      });
+      console.log('Adding new incident:', newIncident);
+
+      const { data, error } = await supabase
+        .from('incidents')
+        .insert([newIncident])
+        .select();
+      
+      if (error) {
+        console.error('Error adding incident:', error);
+        alert(`Erreur lors de l'ajout de l'incident: ${error.message}`);
+      } else {
+        console.log('Incident added successfully:', data);
+        setIncidents([data[0], ...incidents]);
+        setShowNewIncident(false);
+      }
+    } catch (error) {
+      console.error('Error in addNewIncident:', error);
+      alert('Erreur lors de l\'ajout de l\'incident');
     }
     setLoading(false);
   };
@@ -245,16 +307,23 @@ export default function NutricropsQualityExcellence() {
   // Fonction pour mettre à jour un incident
   const updateIncident = async (id, updates) => {
     setLoading(true);
-    const { error } = await supabase
-      .from('incidents')
-      .update(updates)
-      .eq('id', id);
-    
-    if (!error) {
-      setIncidents(incidents.map(inc => 
-        inc.id === id ? { ...inc, ...updates } : inc
-      ));
-      setEditingIncident(null);
+    try {
+      const { error } = await supabase
+        .from('incidents')
+        .update(updates)
+        .eq('id', id);
+      
+      if (error) {
+        console.error('Error updating incident:', error);
+        alert(`Erreur lors de la mise à jour: ${error.message}`);
+      } else {
+        setIncidents(incidents.map(inc => 
+          inc.id === id ? { ...inc, ...updates } : inc
+        ));
+        setEditingIncident(null);
+      }
+    } catch (error) {
+      console.error('Error in updateIncident:', error);
     }
     setLoading(false);
   };
@@ -263,13 +332,20 @@ export default function NutricropsQualityExcellence() {
   const deleteIncident = async (id) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cet incident ?')) {
       setLoading(true);
-      const { error } = await supabase
-        .from('incidents')
-        .delete()
-        .eq('id', id);
-      
-      if (!error) {
-        setIncidents(incidents.filter(inc => inc.id !== id));
+      try {
+        const { error } = await supabase
+          .from('incidents')
+          .delete()
+          .eq('id', id);
+        
+        if (error) {
+          console.error('Error deleting incident:', error);
+          alert(`Erreur lors de la suppression: ${error.message}`);
+        } else {
+          setIncidents(incidents.filter(inc => inc.id !== id));
+        }
+      } catch (error) {
+        console.error('Error in deleteIncident:', error);
       }
       setLoading(false);
     }
@@ -278,7 +354,11 @@ export default function NutricropsQualityExcellence() {
   // Formatage des données
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('fr-FR');
+    try {
+      return new Date(dateString).toLocaleDateString('fr-FR');
+    } catch {
+      return 'Date invalide';
+    }
   };
 
   const formatCurrency = (amount) => {
@@ -301,8 +381,8 @@ export default function NutricropsQualityExcellence() {
       cloture: 'Clôturé' 
     };
     return (
-      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${styles[statut]}`}>
-        {labels[statut]}
+      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${styles[statut] || 'bg-gray-100 text-gray-800 border-gray-200'}`}>
+        {labels[statut] || statut}
       </span>
     );
   };
@@ -314,8 +394,8 @@ export default function NutricropsQualityExcellence() {
       basse: 'bg-gray-100 text-gray-800 border-gray-200'
     };
     return (
-      <span className={`px-2 py-1 rounded text-xs font-semibold border ${styles[priorite]}`}>
-        {priorite?.charAt(0).toUpperCase() + priorite?.slice(1)}
+      <span className={`px-2 py-1 rounded text-xs font-semibold border ${styles[priorite] || 'bg-gray-100 text-gray-800 border-gray-200'}`}>
+        {priorite?.charAt(0)?.toUpperCase() + priorite?.slice(1) || 'Non définie'}
       </span>
     );
   };
@@ -328,8 +408,8 @@ export default function NutricropsQualityExcellence() {
       critique: 'bg-red-100 text-red-800 border-red-200'
     };
     return (
-      <span className={`px-2 py-1 rounded text-xs font-semibold border ${styles[severite]}`}>
-        {severite?.charAt(0).toUpperCase() + severite?.slice(1)}
+      <span className={`px-2 py-1 rounded text-xs font-semibold border ${styles[severite] || 'bg-gray-100 text-gray-800 border-gray-200'}`}>
+        {severite?.charAt(0)?.toUpperCase() + severite?.slice(1) || 'Non définie'}
       </span>
     );
   };
@@ -348,8 +428,8 @@ export default function NutricropsQualityExcellence() {
       transforme_reclamation: 'Réclamation'
     };
     return (
-      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${styles[statut]}`}>
-        {labels[statut]}
+      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${styles[statut] || 'bg-gray-100 text-gray-800 border-gray-200'}`}>
+        {labels[statut] || statut}
       </span>
     );
   };
@@ -358,7 +438,7 @@ export default function NutricropsQualityExcellence() {
   let filteredReclamations = reclamations;
   if (filterStatus !== 'all') filteredReclamations = filteredReclamations.filter(r => r.statut === filterStatus);
   if (filterRegion !== 'all') filteredReclamations = filteredReclamations.filter(r => r.region === filterRegion);
-  if (filterProduit !== 'all') filteredReclamations = filteredReclamations.filter(r => r.qualite.includes(filterProduit));
+  if (filterProduit !== 'all') filteredReclamations = filteredReclamations.filter(r => r.qualite && r.qualite.includes(filterProduit));
   if (filterNouveauProduit !== 'all') {
     filteredReclamations = filteredReclamations.filter(r => 
       filterNouveauProduit === 'oui' ? r.nouveau_produit === true : r.nouveau_produit === false
@@ -366,9 +446,9 @@ export default function NutricropsQualityExcellence() {
   }
   if (searchTerm) {
     filteredReclamations = filteredReclamations.filter(r => 
-      r.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.navire.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.id.toLowerCase().includes(searchTerm.toLowerCase())
+      (r.client && r.client.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (r.navire && r.navire.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (r.id && r.id.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }
 
@@ -392,14 +472,24 @@ export default function NutricropsQualityExcellence() {
                 <p className="text-green-200 text-xs sm:text-sm hidden sm:block">Plateforme de Gestion des Réclamations Clients</p>
               </div>
             </div>
-            <button 
-              onClick={() => setShowNewReclamation(true)}
-              className="bg-white text-green-700 px-4 sm:px-8 py-3 sm:py-4 rounded-lg sm:rounded-xl font-bold hover:bg-green-50 transition-all flex items-center gap-2 sm:gap-3 shadow-xl hover:shadow-2xl text-sm sm:text-lg w-full sm:w-auto justify-center"
-            >
-              <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
-              <span className="hidden sm:inline">Nouvelle Réclamation</span>
-              <span className="sm:hidden">Nouvelle</span>
-            </button>
+            <div className="flex gap-3 flex-col sm:flex-row w-full sm:w-auto">
+              <button 
+                onClick={() => setShowNewReclamation(true)}
+                className="bg-white text-green-700 px-4 sm:px-6 py-3 rounded-lg font-bold hover:bg-green-50 transition-all flex items-center gap-2 shadow-xl hover:shadow-2xl text-sm justify-center"
+              >
+                <Plus className="w-5 h-5" />
+                <span className="hidden sm:inline">Nouvelle Réclamation</span>
+                <span className="sm:hidden">Réclamation</span>
+              </button>
+              <button 
+                onClick={() => setShowNewIncident(true)}
+                className="bg-orange-500 text-white px-4 sm:px-6 py-3 rounded-lg font-bold hover:bg-orange-600 transition-all flex items-center gap-2 shadow-xl hover:shadow-2xl text-sm justify-center"
+              >
+                <Plus className="w-5 h-5" />
+                <span className="hidden sm:inline">Nouvel Incident</span>
+                <span className="sm:hidden">Incident</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -522,24 +612,28 @@ export default function NutricropsQualityExcellence() {
                       Répartition par Famille Engrais {new Date().getFullYear()}
                     </h3>
                     <div className="space-y-3">
-                      {produitStats.map(prod => {
-                        const percentage = dashboardStats.total2025 > 0 ? 
-                          ((prod.count / dashboardStats.total2025) * 100).toFixed(0) : 0;
-                        return (
-                          <div key={prod.produit}>
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="font-semibold text-gray-700">{prod.produit}</span>
-                              <span className="text-gray-600 font-bold">{prod.count} ({percentage}%)</span>
+                      {produitStats.length > 0 ? (
+                        produitStats.map(prod => {
+                          const percentage = dashboardStats.total2025 > 0 ? 
+                            ((prod.count / dashboardStats.total2025) * 100).toFixed(0) : 0;
+                          return (
+                            <div key={prod.produit}>
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="font-semibold text-gray-700">{prod.produit}</span>
+                                <span className="text-gray-600 font-bold">{prod.count} ({percentage}%)</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-4">
+                                <div 
+                                  className={`${prod.color} h-4 rounded-full transition-all`}
+                                  style={{ width: `${percentage}%` }}
+                                ></div>
+                              </div>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-4">
-                              <div 
-                                className={`${prod.color} h-4 rounded-full transition-all`}
-                                style={{ width: `${percentage}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })
+                      ) : (
+                        <p className="text-gray-500 text-center py-4">Aucune donnée disponible</p>
+                      )}
                     </div>
                   </div>
 
@@ -550,20 +644,24 @@ export default function NutricropsQualityExcellence() {
                       Répartition par Régions {new Date().getFullYear()}
                     </h3>
                     <div className="space-y-3">
-                      {regionStats.map(region => (
-                        <div key={region.region}>
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="font-semibold text-gray-700">{region.region}</span>
-                            <span className="text-gray-600 font-bold">{region.count} ({region.percentage}%)</span>
+                      {regionStats.length > 0 ? (
+                        regionStats.map(region => (
+                          <div key={region.region}>
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="font-semibold text-gray-700">{region.region}</span>
+                              <span className="text-gray-600 font-bold">{region.count} ({region.percentage}%)</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-4">
+                              <div 
+                                className="bg-blue-600 h-4 rounded-full transition-all"
+                                style={{ width: `${region.percentage}%` }}
+                              ></div>
+                            </div>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-4">
-                            <div 
-                              className="bg-blue-600 h-4 rounded-full transition-all"
-                              style={{ width: `${region.percentage}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      ))}
+                        ))
+                      ) : (
+                        <p className="text-gray-500 text-center py-4">Aucune donnée disponible</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -572,16 +670,22 @@ export default function NutricropsQualityExcellence() {
                 <div className="bg-white p-6 rounded-xl shadow-lg">
                   <h3 className="text-xl font-bold text-gray-900 mb-4">Répartition par Type d'Incident</h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {incidentTypes.map(incident => (
-                      <div key={incident.type} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold text-gray-700">{incident.type}</span>
-                          <span className={`${incident.color} text-white px-3 py-1 rounded-full font-bold`}>
-                            {incident.count}
-                          </span>
+                    {incidentTypes.length > 0 ? (
+                      incidentTypes.map(incident => (
+                        <div key={incident.type} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-gray-700">{incident.type}</span>
+                            <span className={`${incident.color} text-white px-3 py-1 rounded-full font-bold`}>
+                              {incident.count}
+                            </span>
+                          </div>
                         </div>
+                      ))
+                    ) : (
+                      <div className="col-span-3 text-center py-4 text-gray-500">
+                        Aucun type d'incident disponible
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
 
@@ -592,42 +696,20 @@ export default function NutricropsQualityExcellence() {
                     TOP 5 Clients / Claims
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                    {topClients.map((client, idx) => (
-                      <div key={client.client} className="bg-white p-6 rounded-xl shadow-md text-center border-2 border-green-300">
-                        <div className="text-4xl font-bold text-green-600 mb-2">#{idx + 1}</div>
-                        <p className="font-bold text-gray-900 text-lg mb-2">{client.client}</p>
-                        <p className="text-3xl font-bold text-green-700">{client.claims}</p>
-                        <p className="text-sm text-gray-600 mt-1">réclamations</p>
+                    {topClients.length > 0 ? (
+                      topClients.map((client, idx) => (
+                        <div key={client.client} className="bg-white p-6 rounded-xl shadow-md text-center border-2 border-green-300">
+                          <div className="text-4xl font-bold text-green-600 mb-2">#{idx + 1}</div>
+                          <p className="font-bold text-gray-900 text-lg mb-2">{client.client}</p>
+                          <p className="text-3xl font-bold text-green-700">{client.claims}</p>
+                          <p className="text-sm text-gray-600 mt-1">réclamations</p>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="col-span-5 text-center py-8 text-gray-500">
+                        Aucun client avec réclamations
                       </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Vue Claims */}
-            {dashboardView === 'claims' && (
-              <div className="space-y-6">
-                {/* Evolution des réclamations */}
-                <div className="bg-white p-6 rounded-xl shadow-lg">
-                  <h3 className="text-xl font-bold text-gray-900 mb-6">Evolution du Nombre de Réclamations</h3>
-                  <div className="flex items-end justify-around gap-8 h-80">
-                    <div className="flex flex-col items-center">
-                      <div className="bg-gradient-to-t from-green-600 to-green-400 rounded-t-lg w-24 transition-all hover:shadow-xl" 
-                           style={{ height: `${Math.max(50, (dashboardStats.total2024 / Math.max(dashboardStats.total2024, dashboardStats.total2025)) * 300)}px` }}>
-                        <div className="text-white font-bold text-3xl mt-4 text-center">{dashboardStats.total2024}</div>
-                      </div>
-                      <p className="mt-3 font-bold text-gray-700">{new Date().getFullYear() - 1}</p>
-                      <p className="text-sm text-gray-500">({dashboardStats.claimsRate2024}%)</p>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <div className="bg-gradient-to-t from-yellow-500 to-yellow-300 rounded-t-lg w-24 transition-all hover:shadow-xl" 
-                           style={{ height: `${Math.max(50, (dashboardStats.total2025 / Math.max(dashboardStats.total2024, dashboardStats.total2025)) * 300)}px` }}>
-                        <div className="text-white font-bold text-3xl mt-4 text-center">{dashboardStats.total2025}</div>
-                      </div>
-                      <p className="mt-3 font-bold text-gray-700">{new Date().getFullYear()}</p>
-                      <p className="text-sm text-gray-500">({dashboardStats.claimsRate2025}%)</p>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -637,7 +719,7 @@ export default function NutricropsQualityExcellence() {
             {dashboardView === 'incidents' && (
               <div className="space-y-6">
                 {/* Statistiques Incidents */}
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-white p-6 rounded-xl shadow-lg text-center">
                     <p className="text-gray-600 text-sm mb-2">Total Incidents</p>
                     <p className="text-5xl font-bold text-gray-900">{incidents.length}</p>
@@ -730,7 +812,7 @@ export default function NutricropsQualityExcellence() {
 
                   <div className="flex gap-2 items-center">
                     <span className="text-sm font-semibold text-gray-700">Produit:</span>
-                    {['all', ...new Set(reclamations.map(r => r.qualite))].filter(Boolean).map(prod => (
+                    {['all', ...new Set(reclamations.map(r => r.qualite).filter(Boolean))].map(prod => (
                       <button
                         key={prod}
                         onClick={() => setFilterProduit(prod)}
@@ -772,82 +854,92 @@ export default function NutricropsQualityExcellence() {
             {/* Liste Réclamations */}
             {!selectedReclamation ? (
               <div className="space-y-4">
-                {filteredReclamations.map(rec => (
-                  <div key={rec.id} className="bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all">
-                    <div className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-3">
-                            <h3 className="text-xl font-bold text-gray-900">{rec.id}</h3>
-                            {getStatutBadge(rec.statut)}
-                            {getPrioriteBadge(rec.priorite)}
-                            <span className="text-sm px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
-                              {rec.region}
-                            </span>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-3">
-                            <div>
-                              <span className="text-gray-500">Client:</span>
-                              <p className="font-semibold text-gray-900">{rec.client}</p>
+                {filteredReclamations.length > 0 ? (
+                  filteredReclamations.map(rec => (
+                    <div key={rec.id} className="bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all">
+                      <div className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-3">
+                              <h3 className="text-xl font-bold text-gray-900">{rec.id}</h3>
+                              {getStatutBadge(rec.statut)}
+                              {getPrioriteBadge(rec.priorite)}
+                              {rec.region && (
+                                <span className="text-sm px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
+                                  {rec.region}
+                                </span>
+                              )}
                             </div>
-                            <div>
-                              <span className="text-gray-500">Navire:</span>
-                              <p className="font-semibold text-gray-900">{rec.navire}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Site:</span>
-                              <p className="font-semibold text-gray-900">{rec.site}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Date BL:</span>
-                              <p className="font-semibold text-gray-900">{formatDate(rec.date_bl)}</p>
-                            </div>
-                          </div>
-
-                          {rec.nouveau_produit && (
-                            <div className="mb-3">
-                              <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-bold border border-purple-300">
-                                ⭐ NOUVEAU PRODUIT
-                              </span>
-                            </div>
-                          )}
-
-                          <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded mb-3">
-                            <p className="text-sm font-medium text-gray-900">{rec.probleme}</p>
-                          </div>
-
-                          <div className="flex items-center gap-6 text-sm">
-                            <div>
-                              <Package className="w-4 h-4 inline mr-1 text-gray-500" />
-                              <span className="text-gray-600">{rec.qualite}</span>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Quantité: </span>
-                              <span className="font-semibold text-gray-900">{rec.quantite?.toLocaleString()} MT</span>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Demandé: </span>
-                              <span className="font-bold text-red-600">{formatCurrency(rec.montant_demande)}</span>
-                            </div>
-                            {rec.montant_dedommage > 0 && (
+                            
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-3">
                               <div>
-                                <span className="text-gray-600">Dédommagé: </span>
-                                <span className="font-bold text-green-600">{formatCurrency(rec.montant_dedommage)}</span>
+                                <span className="text-gray-500">Client:</span>
+                                <p className="font-semibold text-gray-900">{rec.client}</p>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Navire:</span>
+                                <p className="font-semibold text-gray-900">{rec.navire}</p>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Site:</span>
+                                <p className="font-semibold text-gray-900">{rec.site}</p>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Date BL:</span>
+                                <p className="font-semibold text-gray-900">{formatDate(rec.date_bl)}</p>
+                              </div>
+                            </div>
+
+                            {rec.nouveau_produit && (
+                              <div className="mb-3">
+                                <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-bold border border-purple-300">
+                                  ⭐ NOUVEAU PRODUIT
+                                </span>
                               </div>
                             )}
+
+                            <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded mb-3">
+                              <p className="text-sm font-medium text-gray-900">{rec.probleme}</p>
+                            </div>
+
+                            <div className="flex items-center gap-6 text-sm">
+                              <div>
+                                <Package className="w-4 h-4 inline mr-1 text-gray-500" />
+                                <span className="text-gray-600">{rec.qualite}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Quantité: </span>
+                                <span className="font-semibold text-gray-900">{rec.quantite?.toLocaleString()} MT</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Demandé: </span>
+                                <span className="font-bold text-red-600">{formatCurrency(rec.montant_demande)}</span>
+                              </div>
+                              {rec.montant_dedommage > 0 && (
+                                <div>
+                                  <span className="text-gray-600">Dédommagé: </span>
+                                  <span className="font-bold text-green-600">{formatCurrency(rec.montant_dedommage)}</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
+                          <button 
+                            onClick={() => setSelectedReclamation(rec)}
+                            className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                          >
+                            Voir Détails
+                          </button>
                         </div>
-                        <button 
-                          onClick={() => setSelectedReclamation(rec)}
-                          className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold"
-                        >
-                          Voir Détails
-                        </button>
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 text-center">
+                    <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-700 mb-2">Aucune réclamation trouvée</h3>
+                    <p className="text-gray-500">Aucune réclamation ne correspond aux critères de recherche.</p>
                   </div>
-                ))}
+                )}
               </div>
             ) : (
               /* DÉTAIL RÉCLAMATION */
@@ -1013,18 +1105,9 @@ export default function NutricropsQualityExcellence() {
           <div className="space-y-6">
             {/* En-tête */}
             <div className="bg-gradient-to-r from-orange-600 to-red-600 text-white p-8 rounded-xl shadow-2xl">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-3xl font-bold mb-2">Gestion des Incidents Qualité</h2>
-                  <p className="text-orange-100">Suivi et gestion des incidents de chargement et analyse qualité</p>
-                </div>
-                <button 
-                  onClick={() => setShowNewIncident(true)}
-                  className="bg-white text-orange-700 px-6 py-3 rounded-xl font-bold hover:bg-orange-50 transition-all flex items-center gap-2 shadow-xl hover:shadow-2xl"
-                >
-                  <Plus className="w-5 h-5" />
-                  Nouvel Incident
-                </button>
+              <div>
+                <h2 className="text-3xl font-bold mb-2">Gestion des Incidents Qualité</h2>
+                <p className="text-orange-100">Suivi et gestion des incidents de chargement et analyse qualité</p>
               </div>
             </div>
 
@@ -1090,7 +1173,9 @@ export default function NutricropsQualityExcellence() {
 
                           <div className="bg-orange-50 border-l-4 border-orange-500 p-3 rounded mb-3">
                             <p className="text-sm font-medium text-gray-900">{incident.type_incident}</p>
-                            <p className="text-xs text-gray-600 mt-1">Inspecteur: {incident.inspecteur}</p>
+                            {incident.inspecteur && (
+                              <p className="text-xs text-gray-600 mt-1">Inspecteur: {incident.inspecteur}</p>
+                            )}
                           </div>
 
                           <div className="flex items-center gap-6 text-sm">
