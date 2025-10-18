@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, CheckCircle, Clock, FileText, Ship, Package, Users, Calendar, Mail, Filter, Search, Plus, Download, TrendingUp, TrendingDown, BarChart3, PieChart, X, MapPin, Edit, Save, Trash2 } from 'lucide-react';
+import { AlertCircle, CheckCircle, Clock, FileText, Ship, Package, Users, Calendar, Mail, Filter, Search, Plus, Download, TrendingUp, TrendingDown, BarChart3, PieChart, X, MapPin, Factory, Droplet, Wind, Circle, Edit, Save, Trash2 } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
 export default function NutricropsQualityExcellence() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedReclamation, setSelectedReclamation] = useState(null);
+  const [selectedIncident, setSelectedIncident] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterRegion, setFilterRegion] = useState('all');
   const [filterProduit, setFilterProduit] = useState('all');
@@ -19,41 +20,189 @@ export default function NutricropsQualityExcellence() {
   // États pour les données
   const [reclamations, setReclamations] = useState([]);
   const [incidents, setIncidents] = useState([]);
+  const [dashboardStats, setDashboardStats] = useState({});
+  const [produitStats, setProduitStats] = useState([]);
+  const [regionStats, setRegionStats] = useState([]);
+  const [incidentTypes, setIncidentTypes] = useState([]);
+  const [topClients, setTopClients] = useState([]);
 
-  // Charger les données depuis Supabase
+  // Charger toutes les données depuis Supabase
   useEffect(() => {
-    loadReclamations();
-    loadIncidents();
+    loadAllData();
   }, []);
 
-  const loadReclamations = async () => {
+  const loadAllData = async () => {
     setLoading(true);
+    await Promise.all([
+      loadReclamations(),
+      loadIncidents(),
+      loadDashboardStats(),
+      loadProduitStats(),
+      loadRegionStats(),
+      loadIncidentTypes(),
+      loadTopClients()
+    ]);
+    setLoading(false);
+  };
+
+  const loadReclamations = async () => {
     const { data, error } = await supabase
       .from('reclamations')
       .select('*')
       .order('date_reception', { ascending: false });
     
-    if (error) {
-      console.error('Error loading reclamations:', error);
-    } else {
+    if (!error) {
       setReclamations(data || []);
     }
-    setLoading(false);
   };
 
   const loadIncidents = async () => {
-    setLoading(true);
     const { data, error } = await supabase
       .from('incidents')
       .select('*')
       .order('date_detection', { ascending: false });
     
-    if (error) {
-      console.error('Error loading incidents:', error);
-    } else {
+    if (!error) {
       setIncidents(data || []);
     }
-    setLoading(false);
+  };
+
+  const loadDashboardStats = async () => {
+    // Stats pour les réclamations
+    const currentYear = new Date().getFullYear();
+    const lastYear = currentYear - 1;
+
+    const { data: currentYearData } = await supabase
+      .from('reclamations')
+      .select('id')
+      .gte('date_reception', `${currentYear}-01-01`)
+      .lte('date_reception', `${currentYear}-12-31`);
+
+    const { data: lastYearData } = await supabase
+      .from('reclamations')
+      .select('id')
+      .gte('date_reception', `${lastYear}-01-01`)
+      .lte('date_reception', `${lastYear}-12-31`);
+
+    const { data: enCoursData } = await supabase
+      .from('reclamations')
+      .select('id')
+      .eq('statut', 'en_cours');
+
+    const { data: clotureesData } = await supabase
+      .from('reclamations')
+      .select('id')
+      .eq('statut', 'cloture');
+
+    const { data: montantsData } = await supabase
+      .from('reclamations')
+      .select('montant_demande, montant_dedommage');
+
+    const totalDemande = montantsData?.reduce((sum, r) => sum + (r.montant_demande || 0), 0) || 0;
+    const totalDedommage = montantsData?.reduce((sum, r) => sum + (r.montant_dedommage || 0), 0) || 0;
+
+    setDashboardStats({
+      total2024: lastYearData?.length || 0,
+      total2025: currentYearData?.length || 0,
+      enCours: enCoursData?.length || 0,
+      cloturees: clotureesData?.length || 0,
+      montantTotalDemande: totalDemande,
+      montantTotalDedommage: totalDedommage,
+      claimsRate2024: lastYearData ? ((lastYearData.length / 1000) * 100).toFixed(1) : 0,
+      claimsRate2025: currentYearData ? ((currentYearData.length / 1000) * 100).toFixed(1) : 0
+    });
+  };
+
+  const loadProduitStats = async () => {
+    const { data, error } = await supabase
+      .from('reclamations')
+      .select('qualite');
+
+    if (!error && data) {
+      const produitCounts = data.reduce((acc, item) => {
+        acc[item.qualite] = (acc[item.qualite] || 0) + 1;
+        return acc;
+      }, {});
+
+      const stats = Object.entries(produitCounts).map(([produit, count]) => ({
+        produit,
+        count,
+        color: getRandomColor()
+      }));
+
+      setProduitStats(stats);
+    }
+  };
+
+  const loadRegionStats = async () => {
+    const { data, error } = await supabase
+      .from('reclamations')
+      .select('region');
+
+    if (!error && data) {
+      const regionCounts = data.reduce((acc, item) => {
+        acc[item.region] = (acc[item.region] || 0) + 1;
+        return acc;
+      }, {});
+
+      const total = data.length;
+      const stats = Object.entries(regionCounts).map(([region, count]) => ({
+        region,
+        count,
+        percentage: total > 0 ? Math.round((count / total) * 100) : 0
+      }));
+
+      setRegionStats(stats);
+    }
+  };
+
+  const loadIncidentTypes = async () => {
+    const { data, error } = await supabase
+      .from('reclamations')
+      .select('type_incident');
+
+    if (!error && data) {
+      const typeCounts = data.reduce((acc, item) => {
+        acc[item.type_incident] = (acc[item.type_incident] || 0) + 1;
+        return acc;
+      }, {});
+
+      const stats = Object.entries(typeCounts).map(([type, count]) => ({
+        type,
+        count,
+        color: getRandomColor()
+      }));
+
+      setIncidentTypes(stats);
+    }
+  };
+
+  const loadTopClients = async () => {
+    const { data, error } = await supabase
+      .from('reclamations')
+      .select('client');
+
+    if (!error && data) {
+      const clientCounts = data.reduce((acc, item) => {
+        acc[item.client] = (acc[item.client] || 0) + 1;
+        return acc;
+      }, {});
+
+      const topClients = Object.entries(clientCounts)
+        .map(([client, claims]) => ({ client, claims }))
+        .sort((a, b) => b.claims - a.claims)
+        .slice(0, 5);
+
+      setTopClients(topClients);
+    }
+  };
+
+  const getRandomColor = () => {
+    const colors = [
+      'bg-green-600', 'bg-yellow-600', 'bg-blue-600', 'bg-teal-600', 
+      'bg-black', 'bg-gray-600', 'bg-red-600', 'bg-orange-600'
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
   };
 
   // Fonction pour ajouter un nouvel incident
@@ -80,10 +229,7 @@ export default function NutricropsQualityExcellence() {
       .insert([newIncident])
       .select();
     
-    if (error) {
-      console.error('Error adding incident:', error);
-      alert('Erreur lors de l\'ajout de l\'incident');
-    } else {
+    if (!error) {
       setIncidents([data[0], ...incidents]);
       setShowNewIncident(false);
       // Réinitialiser le formulaire
@@ -104,10 +250,7 @@ export default function NutricropsQualityExcellence() {
       .update(updates)
       .eq('id', id);
     
-    if (error) {
-      console.error('Error updating incident:', error);
-      alert('Erreur lors de la mise à jour de l\'incident');
-    } else {
+    if (!error) {
       setIncidents(incidents.map(inc => 
         inc.id === id ? { ...inc, ...updates } : inc
       ));
@@ -125,17 +268,14 @@ export default function NutricropsQualityExcellence() {
         .delete()
         .eq('id', id);
       
-      if (error) {
-        console.error('Error deleting incident:', error);
-        alert('Erreur lors de la suppression de l\'incident');
-      } else {
+      if (!error) {
         setIncidents(incidents.filter(inc => inc.id !== id));
       }
       setLoading(false);
     }
   };
 
-  // Formatage des dates pour l'affichage
+  // Formatage des données
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('fr-FR');
@@ -234,7 +374,7 @@ export default function NutricropsQualityExcellence() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-white">
-      {/* Header */}
+      {/* Header avec branding OCP */}
       <div className="bg-gradient-to-r from-green-700 via-green-600 to-green-700 text-white shadow-2xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -295,6 +435,579 @@ export default function NutricropsQualityExcellence() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+        {loading && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center mb-6">
+            <p className="text-blue-700 font-semibold">Chargement des données...</p>
+          </div>
+        )}
+
+        {/* DASHBOARD QUALITY EXCELLENCE */}
+        {activeTab === 'dashboard' && (
+          <div className="space-y-6">
+            {/* Sous-navigation Dashboard */}
+            <div className="bg-white p-3 sm:p-4 rounded-xl shadow-md border border-gray-200">
+              <div className="flex gap-2 sm:gap-3 overflow-x-auto">
+                {['overview', 'claims', 'incidents'].map(view => (
+                  <button
+                    key={view}
+                    onClick={() => setDashboardView(view)}
+                    className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all whitespace-nowrap text-sm sm:text-base ${
+                      dashboardView === view
+                        ? 'bg-green-600 text-white shadow-lg'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {view === 'overview' && 'Vue d\'ensemble'}
+                    {view === 'claims' && 'Quality Claims'}
+                    {view === 'incidents' && 'Quality Incidents'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Vue Overview */}
+            {dashboardView === 'overview' && (
+              <div className="space-y-6">
+                {/* KPIs Principaux */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                  <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg border-l-4 border-blue-500">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-gray-600 text-xs sm:text-sm font-medium">Réclamations {new Date().getFullYear() - 1}</p>
+                        <p className="text-3xl sm:text-4xl font-bold text-gray-900 mt-2">{dashboardStats.total2024}</p>
+                        <p className="text-xs sm:text-sm text-gray-500 mt-1">Claims Rate: {dashboardStats.claimsRate2024}%</p>
+                      </div>
+                      <TrendingDown className="w-8 h-8 sm:w-12 sm:h-12 text-blue-500" />
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-green-500 to-green-600 p-4 sm:p-6 rounded-xl shadow-lg text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-green-100 text-xs sm:text-sm font-medium">Réclamations {new Date().getFullYear()}</p>
+                        <p className="text-3xl sm:text-4xl font-bold mt-2">{dashboardStats.total2025}</p>
+                        <p className="text-xs sm:text-sm text-green-100 mt-1">Claims Rate: {dashboardStats.claimsRate2025}%</p>
+                      </div>
+                      <TrendingUp className="w-8 h-8 sm:w-12 sm:h-12 text-green-200" />
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 p-4 sm:p-6 rounded-xl shadow-lg text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-yellow-100 text-xs sm:text-sm font-medium">En Cours</p>
+                        <p className="text-3xl sm:text-4xl font-bold mt-2">{dashboardStats.enCours}</p>
+                      </div>
+                      <Clock className="w-8 h-8 sm:w-12 sm:h-12 text-yellow-200" />
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 p-4 sm:p-6 rounded-xl shadow-lg text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-emerald-100 text-xs sm:text-sm font-medium">Clôturées</p>
+                        <p className="text-3xl sm:text-4xl font-bold mt-2">{dashboardStats.cloturees}</p>
+                      </div>
+                      <CheckCircle className="w-8 h-8 sm:w-12 sm:h-12 text-emerald-200" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Graphiques côte à côte */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Répartition par Famille Engrais */}
+                  <div className="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <PieChart className="w-6 h-6 text-green-600" />
+                      Répartition par Famille Engrais {new Date().getFullYear()}
+                    </h3>
+                    <div className="space-y-3">
+                      {produitStats.map(prod => {
+                        const percentage = dashboardStats.total2025 > 0 ? 
+                          ((prod.count / dashboardStats.total2025) * 100).toFixed(0) : 0;
+                        return (
+                          <div key={prod.produit}>
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="font-semibold text-gray-700">{prod.produit}</span>
+                              <span className="text-gray-600 font-bold">{prod.count} ({percentage}%)</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-4">
+                              <div 
+                                className={`${prod.color} h-4 rounded-full transition-all`}
+                                style={{ width: `${percentage}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Répartition Géographique */}
+                  <div className="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <MapPin className="w-6 h-6 text-blue-600" />
+                      Répartition par Régions {new Date().getFullYear()}
+                    </h3>
+                    <div className="space-y-3">
+                      {regionStats.map(region => (
+                        <div key={region.region}>
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="font-semibold text-gray-700">{region.region}</span>
+                            <span className="text-gray-600 font-bold">{region.count} ({region.percentage}%)</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-4">
+                            <div 
+                              className="bg-blue-600 h-4 rounded-full transition-all"
+                              style={{ width: `${region.percentage}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Répartition par Type */}
+                <div className="bg-white p-6 rounded-xl shadow-lg">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Répartition par Type d'Incident</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {incidentTypes.map(incident => (
+                      <div key={incident.type} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-gray-700">{incident.type}</span>
+                          <span className={`${incident.color} text-white px-3 py-1 rounded-full font-bold`}>
+                            {incident.count}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Top Clients */}
+                <div className="bg-gradient-to-br from-green-50 to-green-100 p-8 rounded-xl shadow-lg border-2 border-green-200">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                    <Users className="w-8 h-8 text-green-600" />
+                    TOP 5 Clients / Claims
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    {topClients.map((client, idx) => (
+                      <div key={client.client} className="bg-white p-6 rounded-xl shadow-md text-center border-2 border-green-300">
+                        <div className="text-4xl font-bold text-green-600 mb-2">#{idx + 1}</div>
+                        <p className="font-bold text-gray-900 text-lg mb-2">{client.client}</p>
+                        <p className="text-3xl font-bold text-green-700">{client.claims}</p>
+                        <p className="text-sm text-gray-600 mt-1">réclamations</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Vue Claims */}
+            {dashboardView === 'claims' && (
+              <div className="space-y-6">
+                {/* Evolution des réclamations */}
+                <div className="bg-white p-6 rounded-xl shadow-lg">
+                  <h3 className="text-xl font-bold text-gray-900 mb-6">Evolution du Nombre de Réclamations</h3>
+                  <div className="flex items-end justify-around gap-8 h-80">
+                    <div className="flex flex-col items-center">
+                      <div className="bg-gradient-to-t from-green-600 to-green-400 rounded-t-lg w-24 transition-all hover:shadow-xl" 
+                           style={{ height: `${Math.max(50, (dashboardStats.total2024 / Math.max(dashboardStats.total2024, dashboardStats.total2025)) * 300)}px` }}>
+                        <div className="text-white font-bold text-3xl mt-4 text-center">{dashboardStats.total2024}</div>
+                      </div>
+                      <p className="mt-3 font-bold text-gray-700">{new Date().getFullYear() - 1}</p>
+                      <p className="text-sm text-gray-500">({dashboardStats.claimsRate2024}%)</p>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <div className="bg-gradient-to-t from-yellow-500 to-yellow-300 rounded-t-lg w-24 transition-all hover:shadow-xl" 
+                           style={{ height: `${Math.max(50, (dashboardStats.total2025 / Math.max(dashboardStats.total2024, dashboardStats.total2025)) * 300)}px` }}>
+                        <div className="text-white font-bold text-3xl mt-4 text-center">{dashboardStats.total2025}</div>
+                      </div>
+                      <p className="mt-3 font-bold text-gray-700">{new Date().getFullYear()}</p>
+                      <p className="text-sm text-gray-500">({dashboardStats.claimsRate2025}%)</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Vue Incidents */}
+            {dashboardView === 'incidents' && (
+              <div className="space-y-6">
+                {/* Statistiques Incidents */}
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="bg-white p-6 rounded-xl shadow-lg text-center">
+                    <p className="text-gray-600 text-sm mb-2">Total Incidents</p>
+                    <p className="text-5xl font-bold text-gray-900">{incidents.length}</p>
+                  </div>
+                  <div className="bg-green-600 text-white p-6 rounded-xl shadow-lg text-center">
+                    <p className="text-green-100 text-sm mb-2">Résolus</p>
+                    <p className="text-5xl font-bold">
+                      {incidents.filter(i => i.statut === 'resolu').length}
+                    </p>
+                    <p className="text-sm mt-1">
+                      {incidents.length > 0 ? 
+                        ((incidents.filter(i => i.statut === 'resolu').length / incidents.length) * 100).toFixed(0) 
+                        : 0}%
+                    </p>
+                  </div>
+                  <div className="bg-yellow-600 text-white p-6 rounded-xl shadow-lg text-center">
+                    <p className="text-yellow-100 text-sm mb-2">En analyse</p>
+                    <p className="text-5xl font-bold">
+                      {incidents.filter(i => i.statut === 'en_analyse').length}
+                    </p>
+                    <p className="text-sm mt-1">
+                      {incidents.length > 0 ? 
+                        ((incidents.filter(i => i.statut === 'en_analyse').length / incidents.length) * 100).toFixed(0) 
+                        : 0}%
+                    </p>
+                  </div>
+                  <div className="bg-red-600 text-white p-6 rounded-xl shadow-lg text-center">
+                    <p className="text-red-100 text-sm mb-2">Devenus réclamations</p>
+                    <p className="text-5xl font-bold">
+                      {incidents.filter(i => i.statut === 'transforme_reclamation').length}
+                    </p>
+                    <p className="text-sm mt-1">
+                      {incidents.length > 0 ? 
+                        ((incidents.filter(i => i.statut === 'transforme_reclamation').length / incidents.length) * 100).toFixed(0) 
+                        : 0}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* GESTION RÉCLAMATIONS */}
+        {activeTab === 'reclamations' && (
+          <div className="space-y-6">
+            {/* Filtres */}
+            <div className="bg-white p-6 rounded-xl shadow-lg">
+              <div className="space-y-4">
+                <div className="flex gap-4 items-center flex-wrap">
+                  <div className="flex-1 min-w-[300px]">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <input
+                        type="text"
+                        placeholder="Rechercher par client, navire ou ID..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                  <button className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 font-semibold">
+                    <Download className="w-5 h-5" />
+                    Exporter Excel
+                  </button>
+                </div>
+
+                <div className="flex gap-4 items-center flex-wrap">
+                  <Filter className="w-5 h-5 text-gray-600" />
+                  
+                  <div className="flex gap-2 items-center">
+                    <span className="text-sm font-semibold text-gray-700">Statut:</span>
+                    {['all', 'en_cours', 'cloture'].map(status => (
+                      <button
+                        key={status}
+                        onClick={() => setFilterStatus(status)}
+                        className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
+                          filterStatus === status
+                            ? 'bg-green-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {status === 'all' && 'Toutes'}
+                        {status === 'en_cours' && 'En cours'}
+                        {status === 'cloture' && 'Clôturées'}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2 items-center">
+                    <span className="text-sm font-semibold text-gray-700">Produit:</span>
+                    {['all', ...new Set(reclamations.map(r => r.qualite))].filter(Boolean).map(prod => (
+                      <button
+                        key={prod}
+                        onClick={() => setFilterProduit(prod)}
+                        className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
+                          filterProduit === prod
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {prod === 'all' ? 'Tous' : prod}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2 items-center">
+                    <span className="text-sm font-semibold text-gray-700">Nouveau Produit:</span>
+                    {['all', 'oui', 'non'].map(nouveau => (
+                      <button
+                        key={nouveau}
+                        onClick={() => setFilterNouveauProduit(nouveau)}
+                        className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
+                          filterNouveauProduit === nouveau
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {nouveau === 'all' ? 'Tous' : nouveau === 'oui' ? 'Oui' : 'Non'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="text-sm text-gray-600">
+                  <span className="font-semibold">{filteredReclamations.length}</span> réclamation(s) trouvée(s)
+                </div>
+              </div>
+            </div>
+
+            {/* Liste Réclamations */}
+            {!selectedReclamation ? (
+              <div className="space-y-4">
+                {filteredReclamations.map(rec => (
+                  <div key={rec.id} className="bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all">
+                    <div className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-3">
+                            <h3 className="text-xl font-bold text-gray-900">{rec.id}</h3>
+                            {getStatutBadge(rec.statut)}
+                            {getPrioriteBadge(rec.priorite)}
+                            <span className="text-sm px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
+                              {rec.region}
+                            </span>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-3">
+                            <div>
+                              <span className="text-gray-500">Client:</span>
+                              <p className="font-semibold text-gray-900">{rec.client}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Navire:</span>
+                              <p className="font-semibold text-gray-900">{rec.navire}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Site:</span>
+                              <p className="font-semibold text-gray-900">{rec.site}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Date BL:</span>
+                              <p className="font-semibold text-gray-900">{formatDate(rec.date_bl)}</p>
+                            </div>
+                          </div>
+
+                          {rec.nouveau_produit && (
+                            <div className="mb-3">
+                              <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-bold border border-purple-300">
+                                ⭐ NOUVEAU PRODUIT
+                              </span>
+                            </div>
+                          )}
+
+                          <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded mb-3">
+                            <p className="text-sm font-medium text-gray-900">{rec.probleme}</p>
+                          </div>
+
+                          <div className="flex items-center gap-6 text-sm">
+                            <div>
+                              <Package className="w-4 h-4 inline mr-1 text-gray-500" />
+                              <span className="text-gray-600">{rec.qualite}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Quantité: </span>
+                              <span className="font-semibold text-gray-900">{rec.quantite?.toLocaleString()} MT</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Demandé: </span>
+                              <span className="font-bold text-red-600">{formatCurrency(rec.montant_demande)}</span>
+                            </div>
+                            {rec.montant_dedommage > 0 && (
+                              <div>
+                                <span className="text-gray-600">Dédommagé: </span>
+                                <span className="font-bold text-green-600">{formatCurrency(rec.montant_dedommage)}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => setSelectedReclamation(rec)}
+                          className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                        >
+                          Voir Détails
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* DÉTAIL RÉCLAMATION */
+              <div className="bg-white rounded-xl shadow-lg border border-gray-100">
+                <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-green-50 to-blue-50">
+                  <button 
+                    onClick={() => setSelectedReclamation(null)}
+                    className="text-green-600 hover:text-green-700 font-semibold mb-4 flex items-center gap-2"
+                  >
+                    ← Retour à la liste
+                  </button>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <h2 className="text-3xl font-bold text-gray-900">{selectedReclamation.id}</h2>
+                        {getStatutBadge(selectedReclamation.statut)}
+                        {getPrioriteBadge(selectedReclamation.priorite)}
+                      </div>
+                      <p className="text-gray-600">
+                        Reçue le: <span className="font-semibold">{formatDate(selectedReclamation.date_reception) || 'En attente'}</span>
+                        {selectedReclamation.date_cloture && (
+                          <> • Clôturée le: <span className="font-semibold">{formatDate(selectedReclamation.date_cloture)}</span></>
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex gap-3">
+                      <button className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
+                        <Download className="w-5 h-5" />
+                        Exporter PDF
+                      </button>
+                      <button className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+                        <Mail className="w-5 h-5" />
+                        Envoyer Email
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 space-y-6">
+                  {/* Informations Principales */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="bg-blue-50 p-5 rounded-xl border border-blue-200">
+                      <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <Users className="w-5 h-5 text-blue-600" />
+                        Informations Client
+                      </h3>
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <span className="text-gray-600">Client:</span>
+                          <p className="font-bold text-gray-900">{selectedReclamation.client}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Région:</span>
+                          <p className="font-semibold text-gray-900">{selectedReclamation.region}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Pays:</span>
+                          <p className="font-semibold text-gray-900">{selectedReclamation.pays}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-green-50 p-5 rounded-xl border border-green-200">
+                      <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <Ship className="w-5 h-5 text-green-600" />
+                        Informations Logistique
+                      </h3>
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <span className="text-gray-600">Navire:</span>
+                          <p className="font-bold text-gray-900">{selectedReclamation.navire}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Site:</span>
+                          <p className="font-semibold text-gray-900">{selectedReclamation.site}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Date B/L:</span>
+                          <p className="font-semibold text-gray-900">{formatDate(selectedReclamation.date_bl)}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-purple-50 p-5 rounded-xl border border-purple-200">
+                      <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <Package className="w-5 h-5 text-purple-600" />
+                        Informations Produit
+                      </h3>
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <span className="text-gray-600">Qualité:</span>
+                          <p className="font-bold text-gray-900">{selectedReclamation.qualite}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Quantité:</span>
+                          <p className="font-semibold text-gray-900">{selectedReclamation.quantite?.toLocaleString()} MT</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Problème */}
+                  <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded-lg">
+                    <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2 text-lg">
+                      <AlertCircle className="w-6 h-6 text-red-600" />
+                      Problème Signalé
+                    </h3>
+                    <p className="text-gray-900 font-medium text-lg">{selectedReclamation.probleme}</p>
+                    <p className="text-sm text-gray-600 mt-2">Type: {selectedReclamation.type_incident}</p>
+                  </div>
+
+                  {/* Informations Financières */}
+                  <div className="bg-gradient-to-r from-orange-50 to-red-50 p-6 rounded-xl border border-orange-200">
+                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-lg">
+                      <span className="text-2xl">💰</span>
+                      Informations Financières
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="bg-white p-4 rounded-lg shadow">
+                        <p className="text-sm text-gray-600 mb-1">Montant Demandé</p>
+                        <p className="text-2xl font-bold text-red-600">{formatCurrency(selectedReclamation.montant_demande)}</p>
+                      </div>
+                      <div className="bg-white p-4 rounded-lg shadow">
+                        <p className="text-sm text-gray-600 mb-1">Montant Dédommagé</p>
+                        <p className="text-2xl font-bold text-green-600">{formatCurrency(selectedReclamation.montant_dedommage)}</p>
+                      </div>
+                      <div className="bg-white p-4 rounded-lg shadow">
+                        <p className="text-sm text-gray-600 mb-1">Taux de Dédommagement</p>
+                        <p className="text-2xl font-bold text-blue-600">
+                          {selectedReclamation.montant_demande > 0 
+                            ? ((selectedReclamation.montant_dedommage / selectedReclamation.montant_demande) * 100).toFixed(1) 
+                            : 0}%
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-4 pt-6 border-t border-gray-200">
+                    {selectedReclamation.statut === 'en_cours' && (
+                      <>
+                        <button className="flex-1 bg-green-600 text-white py-4 rounded-lg hover:bg-green-700 transition-colors font-semibold text-lg">
+                          Clôturer la Réclamation
+                        </button>
+                        <button className="flex-1 bg-blue-600 text-white py-4 rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg">
+                          Mettre à Jour
+                        </button>
+                      </>
+                    )}
+                    <button className="px-8 bg-gray-200 text-gray-700 py-4 rounded-lg hover:bg-gray-300 transition-colors font-semibold text-lg flex items-center gap-2">
+                      <FileText className="w-5 h-5" />
+                      Générer Rapport
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* GESTION DES INCIDENTS */}
         {activeTab === 'incidents' && (
           <div className="space-y-6">
@@ -314,12 +1027,6 @@ export default function NutricropsQualityExcellence() {
                 </button>
               </div>
             </div>
-
-            {loading && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                <p className="text-blue-700 font-semibold">Chargement des données...</p>
-              </div>
-            )}
 
             {/* Liste des Incidents */}
             <div className="space-y-4">
@@ -393,9 +1100,7 @@ export default function NutricropsQualityExcellence() {
                             </div>
                             <div>
                               <span className="text-gray-600">Quantité: </span>
-                              <span className="font-semibold text-gray-900">
-                                {incident.quantite?.toLocaleString()} MT
-                              </span>
+                              <span className="font-semibold text-gray-900">{incident.quantite?.toLocaleString()} MT</span>
                             </div>
                             <div>
                               <span className="text-gray-600">Destination: </span>
@@ -448,7 +1153,7 @@ export default function NutricropsQualityExcellence() {
               )}
             </div>
 
-            {/* Statistiques des Incidents */}
+            {/* KPIs Incidents */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="bg-white p-6 rounded-xl shadow-lg text-center border-l-4 border-blue-600">
                 <p className="text-gray-600 text-sm mb-2 font-medium">Total Incidents</p>
@@ -491,25 +1196,6 @@ export default function NutricropsQualityExcellence() {
             </div>
           </div>
         )}
-
-        {/* Autres onglets (Dashboard et Réclamations) */}
-        {activeTab === 'dashboard' && (
-          <div className="space-y-6">
-            <div className="text-center p-8">
-              <h2 className="text-2xl font-bold text-gray-700">Dashboard Quality Excellence</h2>
-              <p className="text-gray-600">Vue d'ensemble des indicateurs qualité</p>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'reclamations' && (
-          <div className="space-y-6">
-            <div className="text-center p-8">
-              <h2 className="text-2xl font-bold text-gray-700">Gestion des Réclamations</h2>
-              <p className="text-gray-600">Interface de gestion des réclamations clients</p>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* MODAL NOUVEL INCIDENT */}
@@ -529,7 +1215,7 @@ export default function NutricropsQualityExcellence() {
             </div>
             
             <div className="p-6 space-y-5">
-              <form id="incident-form" onSubmit={(e) => {
+              <form onSubmit={(e) => {
                 e.preventDefault();
                 const formData = new FormData(e.target);
                 const data = Object.fromEntries(formData.entries());
@@ -572,7 +1258,7 @@ export default function NutricropsQualityExcellence() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Qualité Produit *</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Produit *</label>
                     <select 
                       name="produit"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
@@ -590,34 +1276,13 @@ export default function NutricropsQualityExcellence() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Quantité Chargée (MT) *</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Quantité (MT) *</label>
                     <input 
                       name="quantite"
                       type="number" 
                       placeholder="Ex: 5500" 
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent" 
                       required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Date de Chargement *</label>
-                    <input 
-                      name="date_chargement"
-                      type="date" 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent" 
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Port de Destination</label>
-                    <input 
-                      name="port_destination"
-                      type="text" 
-                      placeholder="Ex: SZCZECIN - Poland" 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent" 
                     />
                   </div>
                   <div>
@@ -629,10 +1294,10 @@ export default function NutricropsQualityExcellence() {
                     >
                       <option value="">Sélectionner...</option>
                       <option value="Contamination">Contamination</option>
-                      <option value="Caked Product">Caked Product (Prise en masse)</option>
-                      <option value="Dusty Product">Dusty Product (Poussière)</option>
-                      <option value="Foreign Body">Foreign Body (Corps étranger)</option>
-                      <option value="Wet Product">Wet Product (Humidité)</option>
+                      <option value="Prise en masse">Prise en masse</option>
+                      <option value="Poussière">Poussière</option>
+                      <option value="Corps étranger">Corps étranger</option>
+                      <option value="Humidité">Humidité</option>
                       <option value="Couleur">Couleur</option>
                       <option value="Granulométrie">Granulométrie</option>
                       <option value="Autre">Autre</option>
@@ -640,18 +1305,28 @@ export default function NutricropsQualityExcellence() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Description de l'Incident *</label>
-                  <textarea 
-                    name="description"
-                    rows="4" 
-                    placeholder="Décrire l'incident qualité observé en détail..." 
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    required
-                  ></textarea>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Date de Chargement *</label>
+                    <input 
+                      name="date_chargement"
+                      type="date" 
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent" 
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Port de Destination</label>
+                    <input 
+                      name="port_destination"
+                      type="text" 
+                      placeholder="Ex: SZCZECIN - Poland" 
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent" 
+                    />
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Sévérité *</label>
                     <select 
@@ -678,15 +1353,16 @@ export default function NutricropsQualityExcellence() {
                       <option value="transforme_reclamation">Transformé en réclamation</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Inspecteur</label>
-                    <input 
-                      name="inspecteur"
-                      type="text" 
-                      placeholder="Nom de l'inspecteur" 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent" 
-                    />
-                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Inspecteur</label>
+                  <input 
+                    name="inspecteur"
+                    type="text" 
+                    placeholder="Nom de l'inspecteur" 
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent" 
+                  />
                 </div>
 
                 <div className="flex gap-4 pt-4">
