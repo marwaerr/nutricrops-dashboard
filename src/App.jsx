@@ -1284,26 +1284,27 @@ export default function NutricropsQualityExcellence() {
 
                 
                 {/* Graphique d'évolution - VERSION AVANCÉE */}
-{/* Graphique d'évolution - VERSION CORRIGÉE */}
-<div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+{/* Graphique d'évolution - VERSION RESPONSIVE */}
+<div className="bg-white p-3 sm:p-6 rounded-xl shadow-lg">
   <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Évolution du Nombre de Réclamations et Incidents par Année</h3>
   
-  {/* Légende */}
-  <div className="flex justify-center gap-6 mb-4">
+  {/* Légende responsive */}
+  <div className="flex flex-wrap justify-center gap-3 sm:gap-6 mb-4">
     <div className="flex items-center gap-2">
-      <div className="w-4 h-4 bg-gradient-to-t from-green-500 to-green-600 rounded"></div>
-      <span className="text-sm font-medium text-gray-700">Réclamations</span>
+      <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-t from-green-500 to-green-600 rounded"></div>
+      <span className="text-xs sm:text-sm font-medium text-gray-700">Réclamations</span>
     </div>
     <div className="flex items-center gap-2">
-      <div className="w-4 h-4 bg-gradient-to-t from-blue-500 to-blue-600 rounded"></div>
-      <span className="text-sm font-medium text-gray-700">Incidents</span>
+      <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-t from-blue-500 to-blue-600 rounded"></div>
+      <span className="text-xs sm:text-sm font-medium text-gray-700">Incidents</span>
     </div>
   </div>
 
-  <div className="h-64 sm:h-80">
+  {/* Conteneur graphique responsive */}
+  <div className="h-48 sm:h-64 lg:h-80 relative">
     {evolutionData.length > 0 ? (
-      <div className="relative h-full">
-        {/* Grille d'arrière-plan */}
+      <>
+        {/* Grille d'arrière-plan responsive */}
         <div className="absolute inset-0 flex flex-col justify-between">
           {[0, 25, 50, 75, 100].map((percent) => {
             const maxValue = Math.max(
@@ -1311,7 +1312,7 @@ export default function NutricropsQualityExcellence() {
             );
             return (
               <div key={percent} className="flex items-center">
-                <div className="w-8 sm:w-12 text-xs text-gray-400 text-right pr-2">
+                <div className="w-6 sm:w-8 lg:w-12 text-xs text-gray-400 text-right pr-1 sm:pr-2">
                   {Math.round((percent / 100) * maxValue)}
                 </div>
                 <div className="flex-1 border-t border-gray-100"></div>
@@ -1320,8 +1321,8 @@ export default function NutricropsQualityExcellence() {
           })}
         </div>
         
-        {/* Barres du graphique - VERSION CORRIGÉE */}
-        <div className="flex items-end justify-between h-full gap-3 sm:gap-6 pl-10 sm:pl-14">
+        {/* Barres du graphique - VERSION RESPONSIVE */}
+        <div className="flex items-end justify-between h-full gap-1 sm:gap-2 lg:gap-4 pl-8 sm:pl-10 lg:pl-14">
           {evolutionData.map((item) => {
             // Trouver la valeur maximale entre toutes les réclamations et incidents
             const maxValue = Math.max(
@@ -1333,24 +1334,25 @@ export default function NutricropsQualityExcellence() {
             const heightIncidents = maxValue > 0 ? (item.incidents / maxValue) * 95 : 0;
 
             return (
-              <div key={item.year} className="flex-1 flex flex-col items-center justify-end h-full">
+              <div key={item.year} className="flex-1 flex flex-col items-center justify-end h-full min-w-0">
                 {/* Conteneur principal pour les deux barres */}
-                <div className="flex items-end justify-center gap-1 w-full" style={{ height: '95%' }}>
+                <div className="flex items-end justify-center gap-0.5 sm:gap-1 w-full" style={{ height: '95%' }}>
                   {/* Barre des incidents */}
                   <div className="flex flex-col items-center justify-end h-full">
                     <div 
-                      className="w-8 sm:w-10 bg-gradient-to-t from-blue-500 to-blue-600 rounded-t transition-all duration-500 hover:from-blue-600 hover:to-blue-700 relative group"
+                      className="w-4 sm:w-6 lg:w-8 xl:w-10 bg-gradient-to-t from-blue-500 to-blue-600 rounded-t transition-all duration-500 hover:from-blue-600 hover:to-blue-700 relative group"
                       style={{ 
                         height: `${heightIncidents}%`,
-                        minHeight: heightIncidents > 0 ? '4px' : '0px'
+                        minHeight: heightIncidents > 0 ? '2px' : '0px'
                       }}
                     >
-                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                      {/* Tooltip pour mobile et desktop */}
+                      <div className="absolute -top-6 sm:-top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 hidden sm:block">
                         {item.incidents} incidents
                       </div>
                     </div>
-                    {/* Nombre d'incidents */}
-                    <div className="mt-1 text-xs font-bold text-blue-700">
+                    {/* Nombre d'incidents - visible sur tous les écrans */}
+                    <div className="mt-1 text-[10px] xs:text-xs sm:text-sm font-bold text-blue-700 text-center leading-tight">
                       {item.incidents}
                     </div>
                   </div>
@@ -1358,29 +1360,32 @@ export default function NutricropsQualityExcellence() {
                   {/* Barre des réclamations */}
                   <div className="flex flex-col items-center justify-end h-full">
                     <div 
-                      className="w-8 sm:w-10 bg-gradient-to-t from-green-500 to-green-600 rounded-t transition-all duration-500 hover:from-green-600 hover:to-green-700 relative group"
+                      className="w-4 sm:w-6 lg:w-8 xl:w-10 bg-gradient-to-t from-green-500 to-green-600 rounded-t transition-all duration-500 hover:from-green-600 hover:to-green-700 relative group"
                       style={{ 
                         height: `${heightReclamations}%`,
-                        minHeight: heightReclamations > 0 ? '4px' : '0px'
+                        minHeight: heightReclamations > 0 ? '2px' : '0px'
                       }}
                     >
-                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                      {/* Tooltip pour mobile et desktop */}
+                      <div className="absolute -top-6 sm:-top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 hidden sm:block">
                         {item.reclamations} réclamations
                       </div>
                     </div>
-                    {/* Nombre de réclamations */}
-                    <div className="mt-1 text-xs font-bold text-green-700">
+                    {/* Nombre de réclamations - visible sur tous les écrans */}
+                    <div className="mt-1 text-[10px] xs:text-xs sm:text-sm font-bold text-green-700 text-center leading-tight">
                       {item.reclamations}
                     </div>
                   </div>
                 </div>
                 
-                {/* Label d'année */}
-                <div className="text-center mt-3 w-full">
-                  <p className="text-sm font-semibold text-gray-700">{item.year}</p>
-                  <p className="text-xs text-gray-500 mt-1">
+                {/* Label d'année responsive */}
+                <div className="text-center mt-2 sm:mt-3 w-full px-1">
+                  <p className="text-xs sm:text-sm font-semibold text-gray-700 truncate">
+                    {item.year}
+                  </p>
+                  <p className="text-[10px] xs:text-xs text-gray-500 mt-0.5 sm:mt-1">
                     <span className="text-green-600 font-medium">{item.reclamations}R</span>
-                    {' / '}
+                    <span className="mx-0.5">/</span>
                     <span className="text-blue-600 font-medium">{item.incidents}I</span>
                   </p>
                 </div>
@@ -1388,37 +1393,45 @@ export default function NutricropsQualityExcellence() {
             );
           })}
         </div>
-      </div>
+
+        {/* Légende mobile pour les tooltips */}
+        <div className="sm:hidden mt-4 text-center">
+          <p className="text-xs text-gray-500">
+            👆 Touchez les barres pour voir les détails
+          </p>
+        </div>
+      </>
     ) : (
-      <div className="flex items-center justify-center h-48 sm:h-64">
-        <p className="text-gray-500">Chargement des données d'évolution...</p>
+      <div className="flex items-center justify-center h-full">
+        <p className="text-gray-500 text-sm sm:text-base">Chargement des données d'évolution...</p>
       </div>
     )}
   </div>
 
-  {/* Tableau récapitulatif détaillé */}
-  <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+  {/* Tableau récapitulatif responsive */}
+  <div className="mt-6 sm:mt-8 grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
     {evolutionData.map(item => {
       const maxReclamations = Math.max(...evolutionData.map(d => d.reclamations));
       const maxIncidents = Math.max(...evolutionData.map(d => d.incidents));
       
       return (
-        <div key={item.year} className="text-center p-4 bg-gradient-to-br from-gray-50 to-white rounded-lg border border-gray-200">
-          <p className="text-lg font-bold text-gray-900 mb-3">{item.year}</p>
+        <div key={item.year} className="text-center p-3 sm:p-4 bg-gradient-to-br from-gray-50 to-white rounded-lg border border-gray-200">
+          <p className="text-base sm:text-lg font-bold text-gray-900 mb-2 sm:mb-3">{item.year}</p>
           
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {/* Barre de progression pour les réclamations */}
             <div>
               <div className="flex justify-between items-center mb-1">
-                <span className="text-sm text-gray-600 flex items-center gap-1">
-                  <div className="w-3 h-3 bg-green-500 rounded"></div>
-                  Réclamations:
+                <span className="text-xs sm:text-sm text-gray-600 flex items-center gap-1">
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded"></div>
+                  <span className="hidden xs:inline">Réc:</span>
+                  <span className="xs:hidden">R:</span>
                 </span>
-                <span className="text-lg font-bold text-green-600">{item.reclamations}</span>
+                <span className="text-sm sm:text-lg font-bold text-green-600">{item.reclamations}</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
                 <div 
-                  className="bg-green-500 h-2 rounded-full transition-all duration-500"
+                  className="bg-green-500 h-1.5 sm:h-2 rounded-full transition-all duration-500"
                   style={{ width: `${maxReclamations > 0 ? (item.reclamations / maxReclamations) * 100 : 0}%` }}
                 ></div>
               </div>
@@ -1427,15 +1440,16 @@ export default function NutricropsQualityExcellence() {
             {/* Barre de progression pour les incidents */}
             <div>
               <div className="flex justify-between items-center mb-1">
-                <span className="text-sm text-gray-600 flex items-center gap-1">
-                  <div className="w-3 h-3 bg-blue-500 rounded"></div>
-                  Incidents:
+                <span className="text-xs sm:text-sm text-gray-600 flex items-center gap-1">
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 bg-blue-500 rounded"></div>
+                  <span className="hidden xs:inline">Inc:</span>
+                  <span className="xs:hidden">I:</span>
                 </span>
-                <span className="text-lg font-bold text-blue-600">{item.incidents}</span>
+                <span className="text-sm sm:text-lg font-bold text-blue-600">{item.incidents}</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
                 <div 
-                  className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                  className="bg-blue-500 h-1.5 sm:h-2 rounded-full transition-all duration-500"
                   style={{ width: `${maxIncidents > 0 ? (item.incidents / maxIncidents) * 100 : 0}%` }}
                 ></div>
               </div>
@@ -1444,7 +1458,7 @@ export default function NutricropsQualityExcellence() {
             {/* Ratio */}
             <div className="pt-2 border-t border-gray-200">
               <div className="flex justify-between items-center text-xs">
-                <span className="text-gray-500">Ratio R/I:</span>
+                <span className="text-gray-500">Ratio:</span>
                 <span className="font-semibold text-purple-600">
                   {item.incidents > 0 ? (item.reclamations / item.incidents).toFixed(1) : '∞'}
                 </span>
@@ -1456,37 +1470,44 @@ export default function NutricropsQualityExcellence() {
     })}
   </div>
 
-  {/* Statistiques globales */}
-  <div className="mt-6 grid grid-cols-2 gap-4">
-    <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+  {/* Statistiques globales responsive */}
+  <div className="mt-4 sm:mt-6 grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4">
+    <div className="bg-green-50 p-3 sm:p-4 rounded-lg border border-green-200">
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-green-800">Total Réclamations</p>
-          <p className="text-2xl font-bold text-green-900">
+        <div className="flex-1 min-w-0">
+          <p className="text-xs sm:text-sm font-medium text-green-800">Total Réclamations</p>
+          <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-900">
             {evolutionData.reduce((sum, item) => sum + item.reclamations, 0)}
           </p>
-          <p className="text-xs text-green-600 mt-1">
-            Moyenne: {(evolutionData.reduce((sum, item) => sum + item.reclamations, 0) / evolutionData.length).toFixed(1)}
+          <p className="text-xs text-green-600 mt-0.5 sm:mt-1">
+            Moy: {(evolutionData.reduce((sum, item) => sum + item.reclamations, 0) / evolutionData.length).toFixed(1)}
           </p>
         </div>
-        <FileText className="w-8 h-8 text-green-600" />
+        <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 flex-shrink-0 ml-2" />
       </div>
     </div>
     
-    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+    <div className="bg-blue-50 p-3 sm:p-4 rounded-lg border border-blue-200">
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-blue-800">Total Incidents</p>
-          <p className="text-2xl font-bold text-blue-900">
+        <div className="flex-1 min-w-0">
+          <p className="text-xs sm:text-sm font-medium text-blue-800">Total Incidents</p>
+          <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-900">
             {evolutionData.reduce((sum, item) => sum + item.incidents, 0)}
           </p>
-          <p className="text-xs text-blue-600 mt-1">
-            Moyenne: {(evolutionData.reduce((sum, item) => sum + item.incidents, 0) / evolutionData.length).toFixed(1)}
+          <p className="text-xs text-blue-600 mt-0.5 sm:mt-1">
+            Moy: {(evolutionData.reduce((sum, item) => sum + item.incidents, 0) / evolutionData.length).toFixed(1)}
           </p>
         </div>
-        <AlertCircle className="w-8 h-8 text-blue-600" />
+        <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 flex-shrink-0 ml-2" />
       </div>
     </div>
+  </div>
+
+  {/* Indicateur responsive pour mobile */}
+  <div className="mt-4 sm:hidden bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+    <p className="text-xs text-yellow-800 text-center">
+      <span className="font-semibold">💡 Conseil :</span> Tournez l'écran pour une meilleure visibilité
+    </p>
   </div>
 </div>
               </div>
