@@ -6,9 +6,6 @@ export default function NutricropsQualityExcellence() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedReclamation, setSelectedReclamation] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
-  const [filterRegion, setFilterRegion] = useState('all');
-  const [filterProduit, setFilterProduit] = useState('all');
-  const [filterNouveauProduit, setFilterNouveauProduit] = useState('all');
   const [filterYear, setFilterYear] = useState(new Date().getFullYear());
   const [searchTerm, setSearchTerm] = useState('');
   const [showNewReclamation, setShowNewReclamation] = useState(false);
@@ -25,8 +22,6 @@ export default function NutricropsQualityExcellence() {
 
   // États pour les filtres incidents
   const [filterIncidentStatus, setFilterIncidentStatus] = useState('all');
-  const [filterIncidentSeverite, setFilterIncidentSeverite] = useState('all');
-  const [filterIncidentProduit, setFilterIncidentProduit] = useState('all');
   const [filterIncidentYear, setFilterIncidentYear] = useState(new Date().getFullYear());
   const [searchIncidentTerm, setSearchIncidentTerm] = useState('');
 
@@ -48,34 +43,38 @@ export default function NutricropsQualityExcellence() {
   const [incidentTypes, setIncidentTypes] = useState([]);
   const [topClients, setTopClients] = useState([]);
 
-  // Données pour les régions et pays
+  // États pour les produits depuis la base de données
+  const [produitsData, setProduitsData] = useState({});
+  const [loadingProduits, setLoadingProduits] = useState(false);
+
+  // Données pour les régions et pays - VERSION COMPLÈTE
   const [regionsData, setRegionsData] = useState({
     Europe: [
       'France', 'Allemagne', 'Espagne', 'Italie', 'Royaume-Uni', 'Pays-Bas', 'Belgique', 
-      'Pologne', 'Portugal', 'Suède', 'Danemark', 'Finlande', 'Norvège', 'Suisse', 'Autriche'
+      'Pologne', 'Portugal', 'Suède', 'Danemark', 'Finlande', 'Norvège', 'Suisse', 'Autriche',
+      'Ukraine', 'Bulgarie', 'Irlande', 'Lettonie', 'Lituanie', 'Roumanie', 'Grèce',
+      'République Tchèque', 'Hongrie', 'Slovaquie', 'Croatie', 'Slovénie', 'Estonie'
     ],
     Asie: [
       'Chine', 'Japon', 'Corée du Sud', 'Inde', 'Vietnam', 'Thaïlande', 'Malaisie', 
-      'Indonésie', 'Philippines', 'Bangladesh', 'Pakistan', 'Sri Lanka', 'Taiwan'
+      'Indonésie', 'Philippines', 'Bangladesh', 'Pakistan', 'Sri Lanka', 'Taiwan',
+      'Liban', 'Arabie Saoudite', 'Émirats Arabes Unis', 'Qatar', 'Koweït', 'Oman',
+      'Israël', 'Turquie', 'Singapour', 'Corée du Nord', 'Birmanie', 'Cambodge', 'Laos'
     ],
     Amérique: [
       'États-Unis', 'Canada', 'Brésil', 'Mexique', 'Argentine', 'Chili', 'Colombie', 
-      'Pérou', 'Uruguay', 'Équateur', 'Venezuela'
+      'Pérou', 'Uruguay', 'Équateur', 'Venezuela', 'El Salvador', 'Guatemala', 'Costa Rica',
+      'Panama', 'République Dominicaine', 'Cuba', 'Honduras', 'Nicaragua', 'Paraguay', 'Bolivie'
     ],
     Afrique: [
       'Maroc', 'Algérie', 'Tunisie', 'Égypte', 'Sénégal', 'Côte d\'Ivoire', 'Nigeria', 
-      'Ghana', 'Kenya', 'Afrique du Sud', 'Éthiopie', 'Tanzanie'
+      'Ghana', 'Kenya', 'Afrique du Sud', 'Éthiopie', 'Tanzanie', 'Bénin', 'Rwanda',
+      'Cameroun', 'Mali', 'Burkina Faso', 'République Démocratique du Congo', 'Congo',
+      'Gabon', 'Madagascar', 'Ouganda', 'Zambie', 'Zimbabwe', 'Soudan', 'Angola'
+    ],
+    Océanie: [
+      'Australie', 'Nouvelle-Zélande'
     ]
-  });
-
-  // Données pour les produits et sous-produits
-  const [produitsData, setProduitsData] = useState({
-    'TSP EURO': ['TSP Standard', 'TSP Premium', 'TSP Low Cd'],
-    'TSP CIV': ['TSP CIV Standard', 'TSP CIV Premium'],
-    'DAP EURO Low Cd': ['DAP 18-46-0', 'DAP Premium', 'DAP Low Cadmium'],
-    'MAP 11 52 EU': ['MAP Standard', 'MAP Premium', 'MAP Soluble'],
-    'NPK 15 15 15 Low Cd': ['NPK 15-15-15', 'NPK 12-12-17', 'NPK 20-10-10'],
-    'NP 10 30 EU': ['NP 10-30-0', 'NP 12-32-0']
   });
 
   // États pour le formulaire de réclamation
@@ -93,7 +92,58 @@ export default function NutricropsQualityExcellence() {
   // Charger toutes les données depuis Supabase
   useEffect(() => {
     loadAllData();
+    loadProduitsData();
   }, [selectedYear]);
+
+  // S'assurer que produitsData a toujours une structure valide
+  useEffect(() => {
+    if (Object.keys(produitsData).length === 0 && !loadingProduits) {
+      // Fallback data en attendant le chargement
+      setProduitsData({
+        'ASP': ['ASP 19 38 6S EURO'],
+        'DAP': ['DAP SPECIAL DARK', 'DAP EURO', 'DAP TANZANIE', 'DAP VIETNAM'],
+        'MAP': ['MAP 11 52', 'MAP 11 52 Special', 'MAP 11 52 EU'],
+        'TSP': ['TSP EURO', 'TSP Special', 'TSP Spécial Jorf'],
+        'NPK': ['NPK 10 26 26', 'NPK 14 18 18 6S 1B2O3', 'NPK 14 28 14'],
+        'NP': ['NP 10 30 EU']
+      });
+    }
+  }, [produitsData, loadingProduits]);
+
+  // Charger les produits depuis la base de données
+  const loadProduitsData = async () => {
+    setLoadingProduits(true);
+    try {
+      const { data, error } = await supabase
+        .from('produits')
+        .select('produit, sous_produit')
+        .order('produit');
+
+      if (error) {
+        console.error('Error loading produits:', error);
+        alert('Erreur lors du chargement des produits depuis la base de données');
+        return;
+      }
+
+      // Transformer les données en format {produit: [sous-produits]}
+      const formattedData = data.reduce((acc, item) => {
+        if (!acc[item.produit]) {
+          acc[item.produit] = [];
+        }
+        if (item.sous_produit) {
+          acc[item.produit].push(item.sous_produit);
+        }
+        return acc;
+      }, {});
+
+      setProduitsData(formattedData);
+      console.log('Produits chargés:', Object.keys(formattedData).length, 'produits trouvés');
+    } catch (error) {
+      console.error('Error in loadProduitsData:', error);
+      alert('Erreur lors du chargement des produits');
+    }
+    setLoadingProduits(false);
+  };
 
   const loadAllData = async () => {
     setLoading(true);
@@ -153,40 +203,40 @@ export default function NutricropsQualityExcellence() {
       const currentYear = selectedYear;
       const previousYear = currentYear - 1;
 
-      // Compter les réclamations par année
+      // Compter les réclamations par année (utiliser date_reception au lieu de created_at)
       const { data: currentYearReclamations } = await supabase
         .from('reclamations')
-        .select('id')
-        .gte('created_at', `${currentYear}-01-01`)
-        .lte('created_at', `${currentYear}-12-31`);
+        .select('id, date_reception')
+        .gte('date_reception', `${currentYear}-01-01`)
+        .lte('date_reception', `${currentYear}-12-31`);
 
       const { data: previousYearReclamations } = await supabase
         .from('reclamations')
-        .select('id')
-        .gte('created_at', `${previousYear}-01-01`)
-        .lte('created_at', `${previousYear}-12-31`);
+        .select('id, date_reception')
+        .gte('date_reception', `${previousYear}-01-01`)
+        .lte('date_reception', `${previousYear}-12-31`);
 
-      // Compter les incidents par année
+      // Compter les incidents par année (utiliser date_detection au lieu de created_at)
       const { data: currentYearIncidents } = await supabase
         .from('incidents')
-        .select('id')
-        .gte('created_at', `${currentYear}-01-01`)
-        .lte('created_at', `${currentYear}-12-31`);
+        .select('id, date_detection')
+        .gte('date_detection', `${currentYear}-01-01`)
+        .lte('date_detection', `${currentYear}-12-31`);
 
-      // Compter les réclamations clôturées de l'année sélectionnée
+      // Compter les réclamations clôturées de l'année sélectionnée (utiliser date_reception)
       const { data: clotureesData } = await supabase
         .from('reclamations')
-        .select('id')
+        .select('id, date_reception')
         .eq('statut', 'cloture')
-        .gte('created_at', `${currentYear}-01-01`)
-        .lte('created_at', `${currentYear}-12-31`);
+        .gte('date_reception', `${currentYear}-01-01`)
+        .lte('date_reception', `${currentYear}-12-31`);
 
-      // Calculer les montants pour l'année sélectionnée
+      // Calculer les montants pour l'année sélectionnée (utiliser date_reception)
       const { data: montantsData } = await supabase
         .from('reclamations')
-        .select('montant_demande, montant_dedommage')
-        .gte('created_at', `${currentYear}-01-01`)
-        .lte('created_at', `${currentYear}-12-31`);
+        .select('montant_demande, montant_dedommage, date_reception')
+        .gte('date_reception', `${currentYear}-01-01`)
+        .lte('date_reception', `${currentYear}-12-31`);
 
       const totalDemande = montantsData?.reduce((sum, r) => sum + (r.montant_demande || 0), 0) || 0;
       const totalDedommage = montantsData?.reduce((sum, r) => sum + (r.montant_dedommage || 0), 0) || 0;
@@ -223,15 +273,15 @@ export default function NutricropsQualityExcellence() {
       const evolutionPromises = years.map(async (year) => {
         const { data: reclamationsData } = await supabase
           .from('reclamations')
-          .select('id')
-          .gte('created_at', `${year}-01-01`)
-          .lte('created_at', `${year}-12-31`);
+          .select('id, date_reception')
+          .gte('date_reception', `${year}-01-01`)
+          .lte('date_reception', `${year}-12-31`);
 
         const { data: incidentsData } = await supabase
           .from('incidents')
-          .select('id')
-          .gte('created_at', `${year}-01-01`)
-          .lte('created_at', `${year}-12-31`);
+          .select('id, date_detection')
+          .gte('date_detection', `${year}-01-01`)
+          .lte('date_detection', `${year}-12-31`);
 
         return {
           year,
@@ -251,9 +301,9 @@ export default function NutricropsQualityExcellence() {
     try {
       const { data, error } = await supabase
         .from('reclamations')
-        .select('qualite, created_at')
-        .gte('created_at', `${selectedYear}-01-01`)
-        .lte('created_at', `${selectedYear}-12-31`);
+        .select('qualite, date_reception')
+        .gte('date_reception', `${selectedYear}-01-01`)
+        .lte('date_reception', `${selectedYear}-12-31`);
 
       if (!error && data) {
         const produitCounts = data.reduce((acc, item) => {
@@ -280,9 +330,9 @@ export default function NutricropsQualityExcellence() {
     try {
       const { data, error } = await supabase
         .from('reclamations')
-        .select('region, created_at')
-        .gte('created_at', `${selectedYear}-01-01`)
-        .lte('created_at', `${selectedYear}-12-31`);
+        .select('region, date_reception')
+        .gte('date_reception', `${selectedYear}-01-01`)
+        .lte('date_reception', `${selectedYear}-12-31`);
 
       if (!error && data) {
         const regionCounts = data.reduce((acc, item) => {
@@ -310,9 +360,9 @@ export default function NutricropsQualityExcellence() {
     try {
       const { data, error } = await supabase
         .from('reclamations')
-        .select('type_incident, created_at')
-        .gte('created_at', `${selectedYear}-01-01`)
-        .lte('created_at', `${selectedYear}-12-31`);
+        .select('type_incident, date_reception')
+        .gte('date_reception', `${selectedYear}-01-01`)
+        .lte('date_reception', `${selectedYear}-12-31`);
 
       if (!error && data) {
         const typeCounts = data.reduce((acc, item) => {
@@ -339,9 +389,9 @@ export default function NutricropsQualityExcellence() {
     try {
       const { data, error } = await supabase
         .from('reclamations')
-        .select('client, created_at')
-        .gte('created_at', `${selectedYear}-01-01`)
-        .lte('created_at', `${selectedYear}-12-31`);
+        .select('client, date_reception')
+        .gte('date_reception', `${selectedYear}-01-01`)
+        .lte('date_reception', `${selectedYear}-12-31`);
 
       if (!error && data) {
         const clientCounts = data.reduce((acc, item) => {
@@ -402,20 +452,20 @@ export default function NutricropsQualityExcellence() {
         'REC', 
         formData.date_reception || new Date(), 
         formData.qualite, 
-        formData.client
+        formData.client || 'N/A'
       );
 
       const newReclamation = {
-        client: formData.client,
+        client: formData.client || 'Non spécifié',
         navire: formData.navire,
         site: formData.site,
         qualite: formData.qualite,
         sous_produit: formData.sous_produit || null,
         quantite: parseInt(formData.quantite) || 0,
         type_incident: formData.type_incident,
-        probleme: formData.probleme,
+        probleme: formData.probleme || 'Non spécifié',
         statut: 'nouveau',
-        priorite: formData.priorite,
+        priorite: formData.priorite || 'moyenne', // Priorité par défaut "moyenne"
         region: formData.region,
         pays: formData.pays || 'À définir',
         date_bl: formData.date_bl,
@@ -539,18 +589,21 @@ export default function NutricropsQualityExcellence() {
   const transformIncidentToReclamation = async (incident) => {
     setLoading(true);
     try {
+      // Utiliser la date de détection comme date de réception
+      const dateReception = incident.date_detection || new Date().toISOString().split('T')[0];
+      
       const readableId = generateReadableId(
         'REC', 
-        new Date(), 
+        dateReception, 
         incident.produit, 
-        incident.client
+        incident.client || 'N/A'
       );
 
       const newReclamation = {
         // Reprendre tous les champs de l'incident
         region: incident.region,
         pays: incident.pays,
-        client: incident.client,
+        client: incident.client || 'Non spécifié',
         navire: incident.navire,
         site: incident.site,
         qualite: incident.produit,
@@ -559,9 +612,9 @@ export default function NutricropsQualityExcellence() {
         type_incident: incident.type_incident,
         probleme: incident.probleme || `Incident transformé: ${incident.type_incident}`,
         statut: 'nouveau',
-        priorite: incident.priorite || (incident.severite === 'critique' ? 'haute' : 'moyenne'),
+        priorite: 'moyenne', // Priorité par défaut "moyenne"
         date_bl: incident.date_bl,
-        date_reception: incident.date_reception || new Date().toISOString().split('T')[0],
+        date_reception: dateReception, // Utiliser la date de détection
         montant_demande: incident.montant_demande || 0,
         montant_dedommage: 0,
         nouveau_produit: incident.nouveau_produit || false,
@@ -615,33 +668,31 @@ export default function NutricropsQualityExcellence() {
     setLoading(false);
   };
 
-  // Fonction pour ajouter un nouvel incident - MIS À JOUR
+  // Fonction pour ajouter un nouvel incident
   const addNewIncident = async (formData) => {
     setLoading(true);
     
     try {
       const readableId = generateReadableId(
         'INC', 
-        formData.date_reception || new Date(), 
+        formData.date_detection || new Date(), 
         formData.produit, 
-        formData.client
+        formData.client || 'N/A'
       );
 
       const newIncident = {
-        // Informations client (nouveaux champs)
+        // Informations client
         region: formData.region,
         pays: formData.pays,
-        client: formData.client,
+        client: formData.client || 'Non spécifié',
         
-        // Informations logistiques (étendues)
+        // Informations logistiques
         navire: formData.navire,
         site: formData.site,
         date_bl: formData.date_bl,
-        date_reception: formData.date_reception || new Date().toISOString().split('T')[0],
         port_destination: formData.port_destination,
-        port_dechargement: formData.port_dechargement,
         
-        // Informations produit (étendues)
+        // Informations produit
         produit: formData.produit,
         sous_produit: formData.sous_produit || null,
         quantite: parseInt(formData.quantite) || 0,
@@ -649,19 +700,18 @@ export default function NutricropsQualityExcellence() {
         
         // Détails de l'incident
         type_incident: formData.type_incident,
-        probleme: formData.probleme,
+        probleme: formData.probleme || 'Non spécifié',
         severite: formData.severite,
         statut: formData.statut,
         
-        // Informations financières (nouvelles)
-        priorite: formData.priorite,
+        // Informations financières
         montant_demande: parseFloat(formData.montant_demande) || 0,
         montant_dedommage: 0,
         
         // Métadonnées
         inspecteur: formData.inspecteur,
         date_chargement: formData.date_chargement,
-        date_detection: new Date().toISOString().split('T')[0],
+        date_detection: formData.date_detection || new Date().toISOString().split('T')[0],
         readable_id: readableId
       };
 
@@ -870,22 +920,15 @@ export default function NutricropsQualityExcellence() {
   // Filtrage des réclamations
   let filteredReclamations = reclamations;
 
-  // Filtre par année
+  // Filtre par année - utiliser date_reception au lieu de created_at
   if (filterYear !== 'all') {
     filteredReclamations = filteredReclamations.filter(rec => {
-      const reclamationYear = new Date(rec.created_at).getFullYear();
+      const reclamationYear = new Date(rec.date_reception).getFullYear();
       return reclamationYear === filterYear;
     });
   }
 
   if (filterStatus !== 'all') filteredReclamations = filteredReclamations.filter(r => r.statut === filterStatus);
-  if (filterRegion !== 'all') filteredReclamations = filteredReclamations.filter(r => r.region === filterRegion);
-  if (filterProduit !== 'all') filteredReclamations = filteredReclamations.filter(r => r.qualite && r.qualite.includes(filterProduit));
-  if (filterNouveauProduit !== 'all') {
-    filteredReclamations = filteredReclamations.filter(r => 
-      filterNouveauProduit === 'oui' ? r.nouveau_produit === true : r.nouveau_produit === false
-    );
-  }
   if (searchTerm) {
     filteredReclamations = filteredReclamations.filter(r => 
       (r.client && r.client.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -897,10 +940,10 @@ export default function NutricropsQualityExcellence() {
   // Filtrage des incidents
   let filteredIncidents = incidents;
 
-  // Filtre par année
+  // Filtre par année - utiliser date_detection au lieu de created_at
   if (filterIncidentYear !== 'all') {
     filteredIncidents = filteredIncidents.filter(inc => {
-      const incidentYear = new Date(inc.created_at).getFullYear();
+      const incidentYear = new Date(inc.date_detection).getFullYear();
       return incidentYear === filterIncidentYear;
     });
   }
@@ -908,16 +951,6 @@ export default function NutricropsQualityExcellence() {
   // Filtre par statut
   if (filterIncidentStatus !== 'all') {
     filteredIncidents = filteredIncidents.filter(inc => inc.statut === filterIncidentStatus);
-  }
-
-  // Filtre par sévérité
-  if (filterIncidentSeverite !== 'all') {
-    filteredIncidents = filteredIncidents.filter(inc => inc.severite === filterIncidentSeverite);
-  }
-
-  // Filtre par produit
-  if (filterIncidentProduit !== 'all') {
-    filteredIncidents = filteredIncidents.filter(inc => inc.produit && inc.produit.includes(filterIncidentProduit));
   }
 
   // Filtre par recherche
@@ -1015,10 +1048,16 @@ export default function NutricropsQualityExcellence() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
         {loading && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center mb-6">
             <p className="text-blue-700 font-semibold">Chargement des données...</p>
+          </div>
+        )}
+
+        {loadingProduits && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center mb-6">
+            <p className="text-blue-700 font-semibold">Chargement des produits...</p>
           </div>
         )}
 
@@ -1026,15 +1065,15 @@ export default function NutricropsQualityExcellence() {
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
             {/* Sélecteur d'année */}
-            <div className="bg-white p-6 rounded-xl shadow-lg">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-gray-900">Dashboard Quality Excellence</h2>
+            <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard Quality Excellence</h2>
                 <div className="flex items-center gap-4">
                   <label className="text-sm font-semibold text-gray-700">Année:</label>
                   <select 
                     value={selectedYear}
                     onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm sm:text-base"
                   >
                     {[2021, 2022, 2023, 2024, 2025].map(year => (
                       <option key={year} value={year}>{year}</option>
@@ -1054,10 +1093,10 @@ export default function NutricropsQualityExcellence() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-blue-100 text-xs sm:text-sm font-medium">Incidents {selectedYear}</p>
-                        <p className="text-3xl sm:text-4xl font-bold mt-2">{dashboardStats.totalIncidents}</p>
+                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold mt-2">{dashboardStats.totalIncidents}</p>
                         <p className="text-xs sm:text-sm text-blue-100 mt-1">Total incidents qualité</p>
                       </div>
-                      <AlertCircle className="w-8 h-8 sm:w-12 sm:h-12 text-blue-200" />
+                      <AlertCircle className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-blue-200" />
                     </div>
                   </div>
 
@@ -1066,12 +1105,12 @@ export default function NutricropsQualityExcellence() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-green-100 text-xs sm:text-sm font-medium">Réclamations {selectedYear}</p>
-                        <p className="text-3xl sm:text-4xl font-bold mt-2">{dashboardStats.totalReclamations}</p>
+                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold mt-2">{dashboardStats.totalReclamations}</p>
                         <p className="text-xs sm:text-sm text-green-100 mt-1">
                           {dashboardStats.evolutionPercentage >= 0 ? '+' : ''}{dashboardStats.evolutionPercentage}% vs {selectedYear - 1}
                         </p>
                       </div>
-                      <FileText className="w-8 h-8 sm:w-12 sm:h-12 text-green-200" />
+                      <FileText className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-green-200" />
                     </div>
                   </div>
 
@@ -1080,10 +1119,10 @@ export default function NutricropsQualityExcellence() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-purple-100 text-xs sm:text-sm font-medium">Facteur Multiplication</p>
-                        <p className="text-3xl sm:text-4xl font-bold mt-2">X{dashboardStats.facteurMultiplication}</p>
+                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold mt-2">X{dashboardStats.facteurMultiplication}</p>
                         <p className="text-xs sm:text-sm text-purple-100 mt-1">Incident → Réclamation</p>
                       </div>
-                      <TrendingUp className="w-8 h-8 sm:w-12 sm:h-12 text-purple-200" />
+                      <TrendingUp className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-purple-200" />
                     </div>
                   </div>
 
@@ -1092,53 +1131,53 @@ export default function NutricropsQualityExcellence() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-emerald-100 text-xs sm:text-sm font-medium">Clôturées {selectedYear}</p>
-                        <p className="text-3xl sm:text-4xl font-bold mt-2">{dashboardStats.cloturees}</p>
+                        <p className="text-2xl sm:text-3xl lg:text-4xl font-bold mt-2">{dashboardStats.cloturees}</p>
                         <p className="text-xs sm:text-sm text-emerald-100 mt-1">
                           Taux: {dashboardStats.totalReclamations > 0 ? 
                             ((dashboardStats.cloturees / dashboardStats.totalReclamations) * 100).toFixed(0) 
                             : 0}%
                         </p>
                       </div>
-                      <CheckCircle className="w-8 h-8 sm:w-12 sm:h-12 text-emerald-200" />
+                      <CheckCircle className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-emerald-200" />
                     </div>
                   </div>
                 </div>
 
                 {/* Montants Totaux - année sélectionnée */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-gradient-to-r from-red-500 to-red-600 p-6 rounded-xl shadow-lg text-white">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                  <div className="bg-gradient-to-r from-red-500 to-red-600 p-4 sm:p-6 rounded-xl shadow-lg text-white">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-red-100 text-sm font-medium">Montant Total Demandé {selectedYear}</p>
-                        <p className="text-3xl font-bold mt-2">{formatCurrency(dashboardStats.montantTotalDemande)}</p>
+                        <p className="text-xl sm:text-2xl lg:text-3xl font-bold mt-2">{formatCurrency(dashboardStats.montantTotalDemande)}</p>
                         <p className="text-red-100 text-sm mt-1">Réclamations {selectedYear}</p>
                       </div>
-                      <TrendingUp className="w-12 h-12 text-red-200" />
+                      <TrendingUp className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-red-200" />
                     </div>
                   </div>
 
-                  <div className="bg-gradient-to-r from-green-500 to-green-600 p-6 rounded-xl shadow-lg text-white">
+                  <div className="bg-gradient-to-r from-green-500 to-green-600 p-4 sm:p-6 rounded-xl shadow-lg text-white">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-green-100 text-sm font-medium">Montant Total Dédommagé {selectedYear}</p>
-                        <p className="text-3xl font-bold mt-2">{formatCurrency(dashboardStats.montantTotalDedommage)}</p>
+                        <p className="text-xl sm:text-2xl lg:text-3xl font-bold mt-2">{formatCurrency(dashboardStats.montantTotalDedommage)}</p>
                         <p className="text-green-100 text-sm mt-1">
                           Taux: {dashboardStats.montantTotalDemande > 0 ? 
                             ((dashboardStats.montantTotalDedommage / dashboardStats.montantTotalDemande) * 100).toFixed(1) 
                             : 0}%
                         </p>
                       </div>
-                      <TrendingDown className="w-12 h-12 text-green-200" />
+                      <TrendingDown className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-green-200" />
                     </div>
                   </div>
                 </div>
 
                 {/* Graphiques côte à côte */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                   {/* Répartition par Famille Engrais */}
-                  <div className="bg-white p-6 rounded-xl shadow-lg">
+                  <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
                     <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <PieChart className="w-6 h-6 text-green-600" />
+                      <PieChart className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
                       Répartition par Famille Engrais {selectedYear}
                     </h3>
                     <div className="space-y-3">
@@ -1149,12 +1188,12 @@ export default function NutricropsQualityExcellence() {
                           return (
                             <div key={prod.produit}>
                               <div className="flex justify-between items-center mb-1">
-                                <span className="font-semibold text-gray-700">{prod.produit}</span>
-                                <span className="text-gray-600 font-bold">{prod.count} ({percentage}%)</span>
+                                <span className="font-semibold text-gray-700 text-sm sm:text-base">{prod.produit}</span>
+                                <span className="text-gray-600 font-bold text-sm sm:text-base">{prod.count} ({percentage}%)</span>
                               </div>
-                              <div className="w-full bg-gray-200 rounded-full h-4">
+                              <div className="w-full bg-gray-200 rounded-full h-3 sm:h-4">
                                 <div 
-                                  className={`${prod.color} h-4 rounded-full transition-all`}
+                                  className={`${prod.color} h-3 sm:h-4 rounded-full transition-all`}
                                   style={{ width: `${percentage}%` }}
                                 ></div>
                               </div>
@@ -1168,9 +1207,9 @@ export default function NutricropsQualityExcellence() {
                   </div>
 
                   {/* Répartition Géographique */}
-                  <div className="bg-white p-6 rounded-xl shadow-lg">
+                  <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
                     <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <MapPin className="w-6 h-6 text-blue-600" />
+                      <MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
                       Répartition par Régions {selectedYear}
                     </h3>
                     <div className="space-y-3">
@@ -1178,12 +1217,12 @@ export default function NutricropsQualityExcellence() {
                         regionStats.map(region => (
                           <div key={region.region}>
                             <div className="flex justify-between items-center mb-1">
-                              <span className="font-semibold text-gray-700">{region.region}</span>
-                              <span className="text-gray-600 font-bold">{region.count} ({region.percentage}%)</span>
+                              <span className="font-semibold text-gray-700 text-sm sm:text-base">{region.region}</span>
+                              <span className="text-gray-600 font-bold text-sm sm:text-base">{region.count} ({region.percentage}%)</span>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-4">
+                            <div className="w-full bg-gray-200 rounded-full h-3 sm:h-4">
                               <div 
-                                className="bg-blue-600 h-4 rounded-full transition-all"
+                                className="bg-blue-600 h-3 sm:h-4 rounded-full transition-all"
                                 style={{ width: `${region.percentage}%` }}
                               ></div>
                             </div>
@@ -1197,15 +1236,15 @@ export default function NutricropsQualityExcellence() {
                 </div>
 
                 {/* Répartition par Type */}
-                <div className="bg-white p-6 rounded-xl shadow-lg">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4">Répartition par Type d'Incident {selectedYear}</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Répartition par Type d'Incident {selectedYear}</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     {incidentTypes.length > 0 ? (
                       incidentTypes.map(incident => (
-                        <div key={incident.type} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <div key={incident.type} className="bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-200">
                           <div className="flex items-center justify-between">
-                            <span className="font-semibold text-gray-700">{incident.type}</span>
-                            <span className={`${incident.color} text-white px-3 py-1 rounded-full font-bold`}>
+                            <span className="font-semibold text-gray-700 text-sm sm:text-base">{incident.type}</span>
+                            <span className={`${incident.color} text-white px-2 sm:px-3 py-1 rounded-full font-bold text-sm`}>
                               {incident.count}
                             </span>
                           </div>
@@ -1220,81 +1259,236 @@ export default function NutricropsQualityExcellence() {
                 </div>
 
                 {/* Top Clients */}
-                <div className="bg-gradient-to-br from-green-50 to-green-100 p-8 rounded-xl shadow-lg border-2 border-green-200">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-                    <Users className="w-8 h-8 text-green-600" />
+                <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 sm:p-6 lg:p-8 rounded-xl shadow-lg border-2 border-green-200">
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
+                    <Users className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
                     TOP 5 Clients / Claims {selectedYear}
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
                     {topClients.length > 0 ? (
                       topClients.map((client, idx) => (
-                        <div key={client.client} className="bg-white p-6 rounded-xl shadow-md text-center border-2 border-green-300">
-                          <div className="text-4xl font-bold text-green-600 mb-2">#{idx + 1}</div>
-                          <p className="font-bold text-gray-900 text-lg mb-2">{client.client}</p>
-                          <p className="text-3xl font-bold text-green-700">{client.claims}</p>
-                          <p className="text-sm text-gray-600 mt-1">réclamations</p>
+                        <div key={client.client} className="bg-white p-3 sm:p-4 lg:p-6 rounded-xl shadow-md text-center border-2 border-green-300">
+                          <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-green-600 mb-1 sm:mb-2">#{idx + 1}</div>
+                          <p className="font-bold text-gray-900 text-sm sm:text-base lg:text-lg mb-1 sm:mb-2 truncate">{client.client}</p>
+                          <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-700">{client.claims}</p>
+                          <p className="text-xs sm:text-sm text-gray-600 mt-1">réclamations</p>
                         </div>
                       ))
                     ) : (
-                      <div className="col-span-5 text-center py-8 text-gray-500">
+                      <div className="col-span-2 sm:col-span-3 lg:col-span-5 text-center py-6 sm:py-8 text-gray-500">
                         Aucun client avec réclamations pour {selectedYear}
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Graphique d'évolution - CORRIGÉ */}
-                <div className="bg-white p-6 rounded-xl shadow-lg">
-                  <h3 className="text-xl font-bold text-gray-900 mb-6">Évolution du Nombre de Réclamations par Année</h3>
-                  <div className="h-80">
-                    {evolutionData.length > 0 ? (
-                      <div className="flex items-end justify-between h-64 gap-2">
-                        {evolutionData.map((item, index) => {
-                          // Trouver le maximum pour l'échelle
-                          const maxReclamations = Math.max(...evolutionData.map(d => d.reclamations));
-                          // Calculer la hauteur proportionnelle (minimum 20px pour 0 réclamations)
-                          const heightPercentage = maxReclamations > 0 
-                            ? Math.max((item.reclamations / maxReclamations) * 100, 5) // Minimum 5% pour être visible
-                            : 5;
-                          
-                          return (
-                            <div key={item.year} className="flex-1 flex flex-col items-center">
-                              <div className="text-center mb-2">
-                                <p className="text-sm font-semibold text-gray-700">{item.year}</p>
-                                <p className="text-xs text-gray-500">{item.reclamations} réclamations</p>
-                              </div>
-                              <div 
-                                className="w-full bg-gradient-to-t from-green-500 to-green-600 rounded-t-lg transition-all duration-500 hover:from-green-600 hover:to-green-700 relative group"
-                                style={{ 
-                                  height: `${heightPercentage}%`,
-                                  minHeight: '20px'
-                                }}
-                              >
-                                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                                  {item.reclamations} réclamations
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
+                
+                {/* Graphique d'évolution - VERSION AVANCÉE */}
+{/* Graphique d'évolution - VERSION CORRIGÉE */}
+<div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Évolution du Nombre de Réclamations et Incidents par Année</h3>
+  
+  {/* Légende */}
+  <div className="flex justify-center gap-6 mb-4">
+    <div className="flex items-center gap-2">
+      <div className="w-4 h-4 bg-gradient-to-t from-green-500 to-green-600 rounded"></div>
+      <span className="text-sm font-medium text-gray-700">Réclamations</span>
+    </div>
+    <div className="flex items-center gap-2">
+      <div className="w-4 h-4 bg-gradient-to-t from-blue-500 to-blue-600 rounded"></div>
+      <span className="text-sm font-medium text-gray-700">Incidents</span>
+    </div>
+  </div>
+
+  <div className="h-64 sm:h-80">
+    {evolutionData.length > 0 ? (
+      <div className="relative h-full">
+        {/* Grille d'arrière-plan */}
+        <div className="absolute inset-0 flex flex-col justify-between">
+          {[0, 25, 50, 75, 100].map((percent) => {
+            const maxValue = Math.max(
+              ...evolutionData.map(d => Math.max(d.reclamations, d.incidents))
+            );
+            return (
+              <div key={percent} className="flex items-center">
+                <div className="w-8 sm:w-12 text-xs text-gray-400 text-right pr-2">
+                  {Math.round((percent / 100) * maxValue)}
+                </div>
+                <div className="flex-1 border-t border-gray-100"></div>
+              </div>
+            );
+          })}
+        </div>
+        
+        {/* Barres du graphique - VERSION CORRIGÉE */}
+        <div className="flex items-end justify-between h-full gap-3 sm:gap-6 pl-10 sm:pl-14">
+          {evolutionData.map((item) => {
+            // Trouver la valeur maximale entre toutes les réclamations et incidents
+            const maxValue = Math.max(
+              ...evolutionData.map(d => Math.max(d.reclamations, d.incidents))
+            );
+            
+            // Calculer les hauteurs proportionnelles
+            const heightReclamations = maxValue > 0 ? (item.reclamations / maxValue) * 95 : 0;
+            const heightIncidents = maxValue > 0 ? (item.incidents / maxValue) * 95 : 0;
+
+            return (
+              <div key={item.year} className="flex-1 flex flex-col items-center justify-end h-full">
+                {/* Conteneur principal pour les deux barres */}
+                <div className="flex items-end justify-center gap-1 w-full" style={{ height: '95%' }}>
+                  {/* Barre des incidents */}
+                  <div className="flex flex-col items-center justify-end h-full">
+                    <div 
+                      className="w-8 sm:w-10 bg-gradient-to-t from-blue-500 to-blue-600 rounded-t transition-all duration-500 hover:from-blue-600 hover:to-blue-700 relative group"
+                      style={{ 
+                        height: `${heightIncidents}%`,
+                        minHeight: heightIncidents > 0 ? '4px' : '0px'
+                      }}
+                    >
+                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                        {item.incidents} incidents
                       </div>
-                    ) : (
-                      <div className="flex items-center justify-center h-64">
-                        <p className="text-gray-500">Chargement des données d'évolution...</p>
-                      </div>
-                    )}
+                    </div>
+                    {/* Nombre d'incidents */}
+                    <div className="mt-1 text-xs font-bold text-blue-700">
+                      {item.incidents}
+                    </div>
                   </div>
-                  <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-4">
-                    {evolutionData.map(item => (
-                      <div key={item.year} className="text-center p-4 bg-gray-50 rounded-lg">
-                        <p className="text-lg font-bold text-gray-900">{item.year}</p>
-                        <p className="text-2xl font-bold text-green-600">{item.reclamations}</p>
-                        <p className="text-sm text-gray-600">réclamations</p>
-                        <p className="text-xs text-gray-500">{item.incidents} incidents</p>
+
+                  {/* Barre des réclamations */}
+                  <div className="flex flex-col items-center justify-end h-full">
+                    <div 
+                      className="w-8 sm:w-10 bg-gradient-to-t from-green-500 to-green-600 rounded-t transition-all duration-500 hover:from-green-600 hover:to-green-700 relative group"
+                      style={{ 
+                        height: `${heightReclamations}%`,
+                        minHeight: heightReclamations > 0 ? '4px' : '0px'
+                      }}
+                    >
+                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                        {item.reclamations} réclamations
                       </div>
-                    ))}
+                    </div>
+                    {/* Nombre de réclamations */}
+                    <div className="mt-1 text-xs font-bold text-green-700">
+                      {item.reclamations}
+                    </div>
                   </div>
                 </div>
+                
+                {/* Label d'année */}
+                <div className="text-center mt-3 w-full">
+                  <p className="text-sm font-semibold text-gray-700">{item.year}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    <span className="text-green-600 font-medium">{item.reclamations}R</span>
+                    {' / '}
+                    <span className="text-blue-600 font-medium">{item.incidents}I</span>
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    ) : (
+      <div className="flex items-center justify-center h-48 sm:h-64">
+        <p className="text-gray-500">Chargement des données d'évolution...</p>
+      </div>
+    )}
+  </div>
+
+  {/* Tableau récapitulatif détaillé */}
+  <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    {evolutionData.map(item => {
+      const maxReclamations = Math.max(...evolutionData.map(d => d.reclamations));
+      const maxIncidents = Math.max(...evolutionData.map(d => d.incidents));
+      
+      return (
+        <div key={item.year} className="text-center p-4 bg-gradient-to-br from-gray-50 to-white rounded-lg border border-gray-200">
+          <p className="text-lg font-bold text-gray-900 mb-3">{item.year}</p>
+          
+          <div className="space-y-3">
+            {/* Barre de progression pour les réclamations */}
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-sm text-gray-600 flex items-center gap-1">
+                  <div className="w-3 h-3 bg-green-500 rounded"></div>
+                  Réclamations:
+                </span>
+                <span className="text-lg font-bold text-green-600">{item.reclamations}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-green-500 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${maxReclamations > 0 ? (item.reclamations / maxReclamations) * 100 : 0}%` }}
+                ></div>
+              </div>
+            </div>
+            
+            {/* Barre de progression pour les incidents */}
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-sm text-gray-600 flex items-center gap-1">
+                  <div className="w-3 h-3 bg-blue-500 rounded"></div>
+                  Incidents:
+                </span>
+                <span className="text-lg font-bold text-blue-600">{item.incidents}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${maxIncidents > 0 ? (item.incidents / maxIncidents) * 100 : 0}%` }}
+                ></div>
+              </div>
+            </div>
+            
+            {/* Ratio */}
+            <div className="pt-2 border-t border-gray-200">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-gray-500">Ratio R/I:</span>
+                <span className="font-semibold text-purple-600">
+                  {item.incidents > 0 ? (item.reclamations / item.incidents).toFixed(1) : '∞'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+
+  {/* Statistiques globales */}
+  <div className="mt-6 grid grid-cols-2 gap-4">
+    <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-green-800">Total Réclamations</p>
+          <p className="text-2xl font-bold text-green-900">
+            {evolutionData.reduce((sum, item) => sum + item.reclamations, 0)}
+          </p>
+          <p className="text-xs text-green-600 mt-1">
+            Moyenne: {(evolutionData.reduce((sum, item) => sum + item.reclamations, 0) / evolutionData.length).toFixed(1)}
+          </p>
+        </div>
+        <FileText className="w-8 h-8 text-green-600" />
+      </div>
+    </div>
+    
+    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-blue-800">Total Incidents</p>
+          <p className="text-2xl font-bold text-blue-900">
+            {evolutionData.reduce((sum, item) => sum + item.incidents, 0)}
+          </p>
+          <p className="text-xs text-blue-600 mt-1">
+            Moyenne: {(evolutionData.reduce((sum, item) => sum + item.incidents, 0) / evolutionData.length).toFixed(1)}
+          </p>
+        </div>
+        <AlertCircle className="w-8 h-8 text-blue-600" />
+      </div>
+    </div>
+  </div>
+</div>
               </div>
             )}
           </div>
@@ -1302,31 +1496,31 @@ export default function NutricropsQualityExcellence() {
 
         {/* GESTION RÉCLAMATIONS */}
         {activeTab === 'reclamations' && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Filtres */}
-            <div className="bg-white p-6 rounded-xl shadow-lg">
+            <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
               <div className="space-y-4">
-                <div className="flex gap-4 items-center flex-wrap">
-                  <div className="flex-1 min-w-[300px]">
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <div className="flex-1 w-full min-w-0">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
                       <input
                         type="text"
                         placeholder="Rechercher par client, navire ou ID..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        className="w-full pl-10 pr-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm sm:text-base"
                       />
                     </div>
                   </div>
-                  <button className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 font-semibold">
-                    <Download className="w-5 h-5" />
+                  <button className="bg-green-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 font-semibold text-sm sm:text-base w-full sm:w-auto justify-center">
+                    <Download className="w-4 h-4 sm:w-5 sm:h-5" />
                     Exporter Excel
                   </button>
                 </div>
 
-                <div className="flex gap-4 items-center flex-wrap">
-                  <Filter className="w-5 h-5 text-gray-600" />
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center">
+                  <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
                   
                   {/* Filtre Année */}
                   <div className="flex gap-2 items-center">
@@ -1334,7 +1528,7 @@ export default function NutricropsQualityExcellence() {
                     <select 
                       value={filterYear}
                       onChange={(e) => setFilterYear(parseInt(e.target.value))}
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                     >
                       {[2021, 2022, 2023, 2024, 2025].map(year => (
                         <option key={year} value={year}>{year}</option>
@@ -1342,13 +1536,13 @@ export default function NutricropsQualityExcellence() {
                     </select>
                   </div>
 
-                  <div className="flex gap-2 items-center">
-                    <span className="text-sm font-semibold text-gray-700">Statut:</span>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="text-sm font-semibold text-gray-700 w-full sm:w-auto">Statut:</span>
                     {['all', 'nouveau', 'en_cours', 'cloture'].map(status => (
                       <button
                         key={status}
                         onClick={() => setFilterStatus(status)}
-                        className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
+                        className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-all text-sm ${
                           filterStatus === status
                             ? 'bg-green-600 text-white'
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -1358,40 +1552,6 @@ export default function NutricropsQualityExcellence() {
                         {status === 'nouveau' && 'Nouveau'}
                         {status === 'en_cours' && 'En cours'}
                         {status === 'cloture' && 'Clôturées'}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="flex gap-2 items-center">
-                    <span className="text-sm font-semibold text-gray-700">Produit:</span>
-                    {['all', ...new Set(reclamations.map(r => r.qualite).filter(Boolean))].map(prod => (
-                      <button
-                        key={prod}
-                        onClick={() => setFilterProduit(prod)}
-                        className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
-                          filterProduit === prod
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        {prod === 'all' ? 'Tous' : prod}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="flex gap-2 items-center">
-                    <span className="text-sm font-semibold text-gray-700">Nouveau Produit:</span>
-                    {['all', 'oui', 'non'].map(nouveau => (
-                      <button
-                        key={nouveau}
-                        onClick={() => setFilterNouveauProduit(nouveau)}
-                        className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
-                          filterNouveauProduit === nouveau
-                            ? 'bg-purple-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        {nouveau === 'all' ? 'Tous' : nouveau === 'oui' ? 'Oui' : 'Non'}
                       </button>
                     ))}
                   </div>
@@ -1409,34 +1569,34 @@ export default function NutricropsQualityExcellence() {
                 {filteredReclamations.length > 0 ? (
                   filteredReclamations.map(rec => (
                     <div key={rec.id} className="bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all">
-                      <div className="p-6">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-3">
-                              <h3 className="text-xl font-bold text-gray-900">
+                      <div className="p-4 sm:p-6">
+                        <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3">
+                              <h3 className="text-lg sm:text-xl font-bold text-gray-900 truncate">
                                 {rec.readable_id || `REC-${rec.id.substring(0, 8)}`}
                               </h3>
                               {getStatutBadge(rec.statut)}
                               {getPrioriteBadge(rec.priorite)}
                               {rec.region && (
-                                <span className="text-sm px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
+                                <span className="text-sm px-2 sm:px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
                                   {rec.region}
                                 </span>
                               )}
                             </div>
                             
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 text-sm mb-3">
                               <div>
                                 <span className="text-gray-500">Client:</span>
-                                <p className="font-semibold text-gray-900">{rec.client}</p>
+                                <p className="font-semibold text-gray-900 truncate">{rec.client}</p>
                               </div>
                               <div>
                                 <span className="text-gray-500">Navire:</span>
-                                <p className="font-semibold text-gray-900">{rec.navire}</p>
+                                <p className="font-semibold text-gray-900 truncate">{rec.navire}</p>
                               </div>
                               <div>
                                 <span className="text-gray-500">Site:</span>
-                                <p className="font-semibold text-gray-900">{rec.site}</p>
+                                <p className="font-semibold text-gray-900 truncate">{rec.site}</p>
                               </div>
                               <div>
                                 <span className="text-gray-500">Date réception:</span>
@@ -1446,25 +1606,29 @@ export default function NutricropsQualityExcellence() {
 
                             {rec.nouveau_produit && (
                               <div className="mb-3">
-                                <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-bold border border-purple-300">
+                                <span className="px-2 sm:px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-bold border border-purple-300">
                                   ⭐ NOUVEAU PRODUIT
                                 </span>
                               </div>
                             )}
 
-                            <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded mb-3">
-                              <p className="text-sm font-medium text-gray-900">{rec.probleme}</p>
-                            </div>
-
-                            <div className="flex items-center gap-6 text-sm">
-                              <div>
-                                <Package className="w-4 h-4 inline mr-1 text-gray-500" />
-                                <span className="text-gray-600">{rec.qualite}</span>
+                            {/* AFFICHAGE PRODUIT ET SOUS-PRODUIT */}
+                            <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-sm mb-3">
+                              <div className="flex items-center gap-1">
+                                <Package className="w-4 h-4 text-gray-500" />
+                                <span className="text-gray-600">
+                                  {rec.qualite}
+                                  {rec.sous_produit && (
+                                    <span className="text-gray-400"> / {rec.sous_produit}</span>
+                                  )}
+                                </span>
                               </div>
-                              <div>
-                                <span className="text-gray-600">Quantité: </span>
-                                <span className="font-semibold text-gray-900">{rec.quantite?.toLocaleString()} MT</span>
-                              </div>
+                              {rec.quantite > 0 && (
+                                <div>
+                                  <span className="text-gray-600">Quantité: </span>
+                                  <span className="font-semibold text-gray-900">{rec.quantite?.toLocaleString()} MT</span>
+                                </div>
+                              )}
                               <div>
                                 <span className="text-gray-600">Demandé: </span>
                                 <span className="font-bold text-red-600">{formatCurrency(rec.montant_demande)}</span>
@@ -1476,17 +1640,21 @@ export default function NutricropsQualityExcellence() {
                                 </div>
                               )}
                             </div>
+
+                            <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded">
+                              <p className="text-sm font-medium text-gray-900 line-clamp-2">{rec.probleme}</p>
+                            </div>
                           </div>
-                          <div className="flex flex-col gap-2">
+                          <div className="flex flex-col gap-2 w-full sm:w-auto">
                             <button 
                               onClick={() => setSelectedReclamation(rec)}
-                              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm"
+                              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm w-full sm:w-auto"
                             >
                               Voir Détails
                             </button>
                             <button 
                               onClick={() => setDeleteReclamationConfirm(rec)}
-                              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm flex items-center gap-2"
+                              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm flex items-center gap-2 justify-center w-full sm:w-auto"
                             >
                               <Trash2 className="w-4 h-4" />
                               Supprimer
@@ -1497,9 +1665,9 @@ export default function NutricropsQualityExcellence() {
                     </div>
                   ))
                 ) : (
-                  <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 text-center">
-                    <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-gray-700 mb-2">Aucune réclamation trouvée</h3>
+                  <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 sm:p-8 text-center">
+                    <FileText className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg sm:text-xl font-semibold text-gray-700 mb-2">Aucune réclamation trouvée</h3>
                     <p className="text-gray-500">Aucune réclamation ne correspond aux critères de recherche.</p>
                   </div>
                 )}
@@ -1507,54 +1675,54 @@ export default function NutricropsQualityExcellence() {
             ) : (
               /* DÉTAIL RÉCLAMATION */
               <div className="bg-white rounded-xl shadow-lg border border-gray-100">
-                <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-green-50 to-blue-50">
+                <div className="p-4 sm:p-6 border-b border-gray-100 bg-gradient-to-r from-green-50 to-blue-50">
                   <button 
                     onClick={() => setSelectedReclamation(null)}
-                    className="text-green-600 hover:text-green-700 font-semibold mb-4 flex items-center gap-2"
+                    className="text-green-600 hover:text-green-700 font-semibold mb-4 flex items-center gap-2 text-sm sm:text-base"
                   >
                     ← Retour à la liste
                   </button>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-3 mb-2">
-                        <h2 className="text-3xl font-bold text-gray-900">
+                  <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 truncate">
                           {selectedReclamation.readable_id || `REC-${selectedReclamation.id.substring(0, 8)}`}
                         </h2>
                         {getStatutBadge(selectedReclamation.statut)}
                         {getPrioriteBadge(selectedReclamation.priorite)}
                       </div>
-                      <p className="text-gray-600">
+                      <p className="text-gray-600 text-sm sm:text-base">
                         Reçue le: <span className="font-semibold">{formatDate(selectedReclamation.date_reception) || 'En attente'}</span>
                         {selectedReclamation.date_cloture && (
                           <> • Clôturée le: <span className="font-semibold">{formatDate(selectedReclamation.date_cloture)}</span></>
                         )}
                       </p>
                     </div>
-                    <div className="flex gap-3">
-                      <button className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
-                        <Download className="w-5 h-5" />
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                      <button className="bg-green-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm justify-center">
+                        <Download className="w-4 h-4" />
                         Exporter PDF
                       </button>
-                      <button className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
-                        <Mail className="w-5 h-5" />
+                      <button className="bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm justify-center">
+                        <Mail className="w-4 h-4" />
                         Envoyer Email
                       </button>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-6 space-y-6">
+                <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                   {/* Informations Principales */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-blue-50 p-5 rounded-xl border border-blue-200">
-                      <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <Users className="w-5 h-5 text-blue-600" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                    <div className="bg-blue-50 p-4 sm:p-5 rounded-xl border border-blue-200">
+                      <h3 className="font-bold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
+                        <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                         Informations Client
                       </h3>
                       <div className="space-y-2 text-sm">
                         <div>
                           <span className="text-gray-600">Client:</span>
-                          <p className="font-bold text-gray-900">{selectedReclamation.client}</p>
+                          <p className="font-bold text-gray-900 truncate">{selectedReclamation.client}</p>
                         </div>
                         <div>
                           <span className="text-gray-600">Région:</span>
@@ -1567,15 +1735,15 @@ export default function NutricropsQualityExcellence() {
                       </div>
                     </div>
 
-                    <div className="bg-green-50 p-5 rounded-xl border border-green-200">
-                      <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <Ship className="w-5 h-5 text-green-600" />
+                    <div className="bg-green-50 p-4 sm:p-5 rounded-xl border border-green-200">
+                      <h3 className="font-bold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
+                        <Ship className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
                         Informations Logistique
                       </h3>
                       <div className="space-y-2 text-sm">
                         <div>
                           <span className="text-gray-600">Navire:</span>
-                          <p className="font-bold text-gray-900">{selectedReclamation.navire}</p>
+                          <p className="font-bold text-gray-900 truncate">{selectedReclamation.navire}</p>
                         </div>
                         <div>
                           <span className="text-gray-600">Site:</span>
@@ -1588,9 +1756,9 @@ export default function NutricropsQualityExcellence() {
                       </div>
                     </div>
 
-                    <div className="bg-purple-50 p-5 rounded-xl border border-purple-200">
-                      <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <Package className="w-5 h-5 text-purple-600" />
+                    <div className="bg-purple-50 p-4 sm:p-5 rounded-xl border border-purple-200">
+                      <h3 className="font-bold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
+                        <Package className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
                         Informations Produit
                       </h3>
                       <div className="space-y-2 text-sm">
@@ -1598,10 +1766,18 @@ export default function NutricropsQualityExcellence() {
                           <span className="text-gray-600">Qualité:</span>
                           <p className="font-bold text-gray-900">{selectedReclamation.qualite}</p>
                         </div>
-                        <div>
-                          <span className="text-gray-600">Quantité:</span>
-                          <p className="font-semibold text-gray-900">{selectedReclamation.quantite?.toLocaleString()} MT</p>
-                        </div>
+                        {selectedReclamation.sous_produit && (
+                          <div>
+                            <span className="text-gray-600">Sous-Produit:</span>
+                            <p className="font-semibold text-gray-900">{selectedReclamation.sous_produit}</p>
+                          </div>
+                        )}
+                        {selectedReclamation.quantite > 0 && (
+                          <div>
+                            <span className="text-gray-600">Quantité:</span>
+                            <p className="font-semibold text-gray-900">{selectedReclamation.quantite?.toLocaleString()} MT</p>
+                          </div>
+                        )}
                         {selectedReclamation.nouveau_produit && (
                           <div>
                             <span className="text-gray-600">Statut:</span>
@@ -1613,26 +1789,26 @@ export default function NutricropsQualityExcellence() {
                   </div>
 
                   {/* Problème */}
-                  <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded-lg">
-                    <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2 text-lg">
-                      <AlertCircle className="w-6 h-6 text-red-600" />
+                  <div className="bg-red-50 border-l-4 border-red-500 p-4 sm:p-6 rounded-lg">
+                    <h3 className="font-bold text-gray-900 mb-2 sm:mb-3 flex items-center gap-2 text-base sm:text-lg">
+                      <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
                       Problème Signalé
                     </h3>
-                    <p className="text-gray-900 font-medium text-lg">{selectedReclamation.probleme}</p>
+                    <p className="text-gray-900 font-medium text-sm sm:text-base">{selectedReclamation.probleme}</p>
                     <p className="text-sm text-gray-600 mt-2">Type: {selectedReclamation.type_incident}</p>
                   </div>
 
                   {/* Informations Financières */}
-                  <div className="bg-gradient-to-r from-orange-50 to-red-50 p-6 rounded-xl border border-orange-200">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-bold text-gray-900 flex items-center gap-2 text-lg">
-                        <span className="text-2xl">💰</span>
+                  <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 sm:p-6 rounded-xl border border-orange-200">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+                      <h3 className="font-bold text-gray-900 flex items-center gap-2 text-base sm:text-lg">
+                        <span className="text-xl sm:text-2xl">💰</span>
                         Informations Financières
                       </h3>
                       {!editingFinances && selectedReclamation.statut !== 'cloture' && (
                         <button 
                           onClick={() => startEditingFinances(selectedReclamation)}
-                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm"
+                          className="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm w-full sm:w-auto justify-center"
                         >
                           <Edit className="w-4 h-4" />
                           Modifier
@@ -1642,7 +1818,7 @@ export default function NutricropsQualityExcellence() {
                     
                     {editingFinances && editingFinances.id === selectedReclamation.id ? (
                       <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">Montant Demandé (MAD)</label>
                             <input
@@ -1653,7 +1829,7 @@ export default function NutricropsQualityExcellence() {
                                 ...editingFinances,
                                 montant_demande: e.target.value
                               })}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                             />
                           </div>
                           <div>
@@ -1666,39 +1842,39 @@ export default function NutricropsQualityExcellence() {
                                 ...editingFinances,
                                 montant_dedommage: e.target.value
                               })}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                             />
                           </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-col sm:flex-row">
                           <button 
                             onClick={saveFinances}
-                            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm justify-center"
                           >
                             <Save className="w-4 h-4" />
                             Sauvegarder
                           </button>
                           <button 
                             onClick={() => setEditingFinances(null)}
-                            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+                            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm"
                           >
                             Annuler
                           </button>
                         </div>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-white p-4 rounded-lg shadow">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="bg-white p-3 sm:p-4 rounded-lg shadow">
                           <p className="text-sm text-gray-600 mb-1">Montant Demandé</p>
-                          <p className="text-2xl font-bold text-red-600">{formatCurrency(selectedReclamation.montant_demande)}</p>
+                          <p className="text-lg sm:text-xl lg:text-2xl font-bold text-red-600">{formatCurrency(selectedReclamation.montant_demande)}</p>
                         </div>
-                        <div className="bg-white p-4 rounded-lg shadow">
+                        <div className="bg-white p-3 sm:p-4 rounded-lg shadow">
                           <p className="text-sm text-gray-600 mb-1">Montant Dédommagé</p>
-                          <p className="text-2xl font-bold text-green-600">{formatCurrency(selectedReclamation.montant_dedommage)}</p>
+                          <p className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">{formatCurrency(selectedReclamation.montant_dedommage)}</p>
                         </div>
-                        <div className="bg-white p-4 rounded-lg shadow">
+                        <div className="bg-white p-3 sm:p-4 rounded-lg shadow">
                           <p className="text-sm text-gray-600 mb-1">Taux de Dédommagement</p>
-                          <p className="text-2xl font-bold text-blue-600">
+                          <p className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-600">
                             {selectedReclamation.montant_demande > 0 
                               ? ((selectedReclamation.montant_dedommage / selectedReclamation.montant_demande) * 100).toFixed(1) 
                               : 0}%
@@ -1709,26 +1885,24 @@ export default function NutricropsQualityExcellence() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-4 pt-6 border-t border-gray-200 flex-wrap">
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4 sm:pt-6 border-t border-gray-200">
                     {selectedReclamation.statut !== 'cloture' && (
-                      <>
-                        <button 
-                          onClick={() => closeReclamation(selectedReclamation.id)}
-                          className="flex-1 bg-green-600 text-white py-4 rounded-lg hover:bg-green-700 transition-colors font-semibold text-lg min-w-[200px]"
-                        >
-                          Clôturer la Réclamation
-                        </button>
-                      </>
+                      <button 
+                        onClick={() => closeReclamation(selectedReclamation.id)}
+                        className="bg-green-600 text-white py-3 sm:py-4 rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm sm:text-base flex-1 text-center"
+                      >
+                        Clôturer la Réclamation
+                      </button>
                     )}
                     <button 
                       onClick={() => setDeleteReclamationConfirm(selectedReclamation)}
-                      className="flex-1 bg-red-600 text-white py-4 rounded-lg hover:bg-red-700 transition-colors font-semibold text-lg min-w-[200px] flex items-center justify-center gap-2"
+                      className="bg-red-600 text-white py-3 sm:py-4 rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm sm:text-base flex-1 flex items-center justify-center gap-2"
                     >
-                      <Trash2 className="w-5 h-5" />
+                      <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                       Supprimer la Réclamation
                     </button>
-                    <button className="flex-1 bg-gray-200 text-gray-700 py-4 rounded-lg hover:bg-gray-300 transition-colors font-semibold text-lg min-w-[200px] flex items-center justify-center gap-2">
-                      <FileText className="w-5 h-5" />
+                    <button className="bg-gray-200 text-gray-700 py-3 sm:py-4 rounded-lg hover:bg-gray-300 transition-colors font-semibold text-sm sm:text-base flex-1 flex items-center justify-center gap-2">
+                      <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
                       Générer Rapport
                     </button>
                   </div>
@@ -1740,39 +1914,39 @@ export default function NutricropsQualityExcellence() {
 
         {/* GESTION DES INCIDENTS */}
         {activeTab === 'incidents' && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* En-tête */}
-            <div className="bg-gradient-to-r from-orange-600 to-red-600 text-white p-8 rounded-xl shadow-2xl">
+            <div className="bg-gradient-to-r from-orange-600 to-red-600 text-white p-4 sm:p-6 lg:p-8 rounded-xl shadow-2xl">
               <div>
-                <h2 className="text-3xl font-bold mb-2">Gestion des Incidents Qualité</h2>
-                <p className="text-orange-100">Suivi et gestion des incidents de chargement et analyse qualité</p>
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2">Gestion des Incidents Qualité</h2>
+                <p className="text-orange-100 text-sm sm:text-base">Suivi et gestion des incidents de chargement et analyse qualité</p>
               </div>
             </div>
 
             {/* Filtres Incidents */}
-            <div className="bg-white p-6 rounded-xl shadow-lg">
+            <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
               <div className="space-y-4">
-                <div className="flex gap-4 items-center flex-wrap">
-                  <div className="flex-1 min-w-[300px]">
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <div className="flex-1 w-full min-w-0">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
                       <input
                         type="text"
                         placeholder="Rechercher par client, navire ou ID..."
                         value={searchIncidentTerm}
                         onChange={(e) => setSearchIncidentTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        className="w-full pl-10 pr-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base"
                       />
                     </div>
                   </div>
-                  <button className="bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2 font-semibold">
-                    <Download className="w-5 h-5" />
+                  <button className="bg-orange-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2 font-semibold text-sm sm:text-base w-full sm:w-auto justify-center">
+                    <Download className="w-4 h-4 sm:w-5 sm:h-5" />
                     Exporter Excel
                   </button>
                 </div>
 
-                <div className="flex gap-4 items-center flex-wrap">
-                  <Filter className="w-5 h-5 text-gray-600" />
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center">
+                  <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
                   
                   {/* Filtre Année */}
                   <div className="flex gap-2 items-center">
@@ -1780,7 +1954,7 @@ export default function NutricropsQualityExcellence() {
                     <select 
                       value={filterIncidentYear}
                       onChange={(e) => setFilterIncidentYear(parseInt(e.target.value))}
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
                     >
                       {[2021, 2022, 2023, 2024, 2025].map(year => (
                         <option key={year} value={year}>{year}</option>
@@ -1789,13 +1963,13 @@ export default function NutricropsQualityExcellence() {
                   </div>
 
                   {/* Filtre Statut */}
-                  <div className="flex gap-2 items-center">
-                    <span className="text-sm font-semibold text-gray-700">Statut:</span>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="text-sm font-semibold text-gray-700 w-full sm:w-auto">Statut:</span>
                     {['all', 'detecte', 'en_analyse', 'resolu', 'transforme_reclamation'].map(status => (
                       <button
                         key={status}
                         onClick={() => setFilterIncidentStatus(status)}
-                        className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
+                        className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-all text-sm ${
                           filterIncidentStatus === status
                             ? 'bg-orange-600 text-white'
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -1806,42 +1980,6 @@ export default function NutricropsQualityExcellence() {
                         {status === 'en_analyse' && 'En analyse'}
                         {status === 'resolu' && 'Résolu'}
                         {status === 'transforme_reclamation' && 'Devenu réclamation'}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Filtre Sévérité */}
-                  <div className="flex gap-2 items-center">
-                    <span className="text-sm font-semibold text-gray-700">Sévérité:</span>
-                    {['all', 'faible', 'moyenne', 'elevee', 'critique'].map(severite => (
-                      <button
-                        key={severite}
-                        onClick={() => setFilterIncidentSeverite(severite)}
-                        className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
-                          filterIncidentSeverite === severite
-                            ? 'bg-red-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        {severite === 'all' ? 'Toutes' : severite.charAt(0).toUpperCase() + severite.slice(1)}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Filtre Produit */}
-                  <div className="flex gap-2 items-center">
-                    <span className="text-sm font-semibold text-gray-700">Produit:</span>
-                    {['all', ...new Set(incidents.map(i => i.produit).filter(Boolean))].map(prod => (
-                      <button
-                        key={prod}
-                        onClick={() => setFilterIncidentProduit(prod)}
-                        className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
-                          filterIncidentProduit === prod
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        {prod === 'all' ? 'Tous' : prod}
                       </button>
                     ))}
                   </div>
@@ -1856,19 +1994,19 @@ export default function NutricropsQualityExcellence() {
             {/* Liste des Incidents */}
             <div className="space-y-4">
               {filteredIncidents.length === 0 ? (
-                <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 text-center">
-                  <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-700 mb-2">Aucun incident trouvé</h3>
+                <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 sm:p-8 text-center">
+                  <Package className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-700 mb-2">Aucun incident trouvé</h3>
                   <p className="text-gray-500">Aucun incident ne correspond aux critères de recherche.</p>
                 </div>
               ) : (
                 filteredIncidents.map(incident => (
                   <div key={incident.id} className="bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all">
-                    <div className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-3">
-                            <h3 className="text-xl font-bold text-gray-900">
+                    <div className="p-4 sm:p-6">
+                      <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3">
+                            <h3 className="text-lg sm:text-xl font-bold text-gray-900 truncate">
                               {incident.readable_id || `INC-${incident.id.substring(0, 8)}`}
                             </h3>
                             {editingIncident?.id === incident.id ? (
@@ -1878,7 +2016,7 @@ export default function NutricropsQualityExcellence() {
                                   ...editingIncident,
                                   statut: e.target.value
                                 })}
-                                className="px-3 py-1 rounded-full text-xs font-semibold border border-blue-300 bg-blue-50"
+                                className="px-2 sm:px-3 py-1 rounded-full text-xs font-semibold border border-blue-300 bg-blue-50"
                               >
                                 <option value="detecte">Détecté</option>
                                 <option value="en_analyse">En analyse</option>
@@ -1889,23 +2027,28 @@ export default function NutricropsQualityExcellence() {
                               getIncidentStatutBadge(incident.statut)
                             )}
                             {getSeveriteBadge(incident.severite)}
-                            <span className="text-sm px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
+                            <span className="text-sm px-2 sm:px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
                               {incident.site}
                             </span>
                           </div>
                           
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 text-sm mb-3">
                             <div>
                               <span className="text-gray-500">Client:</span>
-                              <p className="font-semibold text-gray-900">{incident.client}</p>
+                              <p className="font-semibold text-gray-900 truncate">{incident.client}</p>
                             </div>
                             <div>
                               <span className="text-gray-500">Navire:</span>
-                              <p className="font-semibold text-gray-900">{incident.navire}</p>
+                              <p className="font-semibold text-gray-900 truncate">{incident.navire}</p>
                             </div>
                             <div>
                               <span className="text-gray-500">Produit:</span>
-                              <p className="font-semibold text-gray-900">{incident.produit}</p>
+                              <p className="font-semibold text-gray-900 truncate">
+                                {incident.produit}
+                                {incident.sous_produit && (
+                                  <span className="text-gray-400"> / {incident.sous_produit}</span>
+                                )}
+                              </p>
                             </div>
                             <div>
                               <span className="text-gray-500">Date détection:</span>
@@ -1917,47 +2060,54 @@ export default function NutricropsQualityExcellence() {
 
                           {incident.nouveau_produit && (
                             <div className="mb-3">
-                              <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-bold border border-purple-300">
+                              <span className="px-2 sm:px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-bold border border-purple-300">
                                 ⭐ NOUVEAU PRODUIT
                               </span>
                             </div>
                           )}
 
                           <div className="bg-orange-50 border-l-4 border-orange-500 p-3 rounded mb-3">
-                            <p className="text-sm font-medium text-gray-900">{incident.type_incident}</p>
+                            <p className="text-sm font-medium text-gray-900 line-clamp-2">{incident.type_incident}</p>
                             {incident.inspecteur && (
                               <p className="text-xs text-gray-600 mt-1">Inspecteur: {incident.inspecteur}</p>
                             )}
                           </div>
 
-                          <div className="flex items-center gap-6 text-sm">
-                            <div>
-                              <Package className="w-4 h-4 inline mr-1 text-gray-500" />
-                              <span className="text-gray-600">{incident.produit}</span>
+                          <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-sm">
+                            <div className="flex items-center gap-1">
+                              <Package className="w-4 h-4 text-gray-500" />
+                              <span className="text-gray-600">
+                                {incident.produit}
+                                {incident.sous_produit && (
+                                  <span className="text-gray-400"> / {incident.sous_produit}</span>
+                                )}
+                              </span>
                             </div>
-                            <div>
-                              <span className="text-gray-600">Quantité: </span>
-                              <span className="font-semibold text-gray-900">{incident.quantite?.toLocaleString()} MT</span>
-                            </div>
+                            {incident.quantite > 0 && (
+                              <div>
+                                <span className="text-gray-600">Quantité: </span>
+                                <span className="font-semibold text-gray-900">{incident.quantite?.toLocaleString()} MT</span>
+                              </div>
+                            )}
                             <div>
                               <span className="text-gray-600">Destination: </span>
-                              <span className="font-semibold text-gray-900">{incident.port_destination}</span>
+                              <span className="font-semibold text-gray-900 truncate">{incident.port_destination}</span>
                             </div>
                           </div>
                         </div>
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-2 w-full sm:w-auto">
                           {editingIncident?.id === incident.id ? (
                             <>
                               <button 
                                 onClick={() => updateIncidentStatus(incident.id, editingIncident.statut)}
-                                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm flex items-center gap-2"
+                                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm flex items-center gap-2 justify-center w-full sm:w-auto"
                               >
                                 <Save className="w-4 h-4" />
                                 Sauvegarder
                               </button>
                               <button 
                                 onClick={() => setEditingIncident(null)}
-                                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors font-semibold text-sm"
+                                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors font-semibold text-sm w-full sm:w-auto justify-center"
                               >
                                 Annuler
                               </button>
@@ -1966,14 +2116,14 @@ export default function NutricropsQualityExcellence() {
                             <>
                               <button 
                                 onClick={() => setEditingIncident(incident)}
-                                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm flex items-center gap-2"
+                                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm flex items-center gap-2 justify-center w-full sm:w-auto"
                               >
                                 <Edit className="w-4 h-4" />
                                 Modifier Statut
                               </button>
                               <button 
                                 onClick={() => setDeleteConfirm(incident.id)}
-                                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm flex items-center gap-2"
+                                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm flex items-center gap-2 justify-center w-full sm:w-auto"
                               >
                                 <Trash2 className="w-4 h-4" />
                                 Supprimer
@@ -1989,15 +2139,15 @@ export default function NutricropsQualityExcellence() {
             </div>
 
             {/* KPIs Incidents */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-white p-6 rounded-xl shadow-lg text-center border-l-4 border-blue-600">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg text-center border-l-4 border-blue-600">
                 <p className="text-gray-600 text-sm mb-2 font-medium">Total Incidents</p>
-                <p className="text-5xl font-bold text-gray-900">{filteredIncidents.length}</p>
-                <p className="text-sm text-gray-500 mt-1">Filtrés</p>
+                <p className="text-2xl sm:text-3xl lg:text-5xl font-bold text-gray-900">{filteredIncidents.length}</p>
+                <p className="text-xs sm:text-sm text-gray-500 mt-1">Filtrés</p>
               </div>
-              <div className="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-xl shadow-lg text-center text-white">
+              <div className="bg-gradient-to-br from-green-500 to-green-600 p-4 sm:p-6 rounded-xl shadow-lg text-center text-white">
                 <p className="text-green-100 text-sm mb-2 font-medium">Résolus</p>
-                <p className="text-5xl font-bold">
+                <p className="text-2xl sm:text-3xl lg:text-5xl font-bold">
                   {filteredIncidents.filter(i => i.statut === 'resolu').length}
                 </p>
                 <p className="text-sm mt-1">
@@ -2006,9 +2156,9 @@ export default function NutricropsQualityExcellence() {
                     : 0}%
                 </p>
               </div>
-              <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 p-6 rounded-xl shadow-lg text-center text-white">
+              <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 p-4 sm:p-6 rounded-xl shadow-lg text-center text-white">
                 <p className="text-yellow-100 text-sm mb-2 font-medium">En analyse</p>
-                <p className="text-5xl font-bold">
+                <p className="text-2xl sm:text-3xl lg:text-5xl font-bold">
                   {filteredIncidents.filter(i => i.statut === 'en_analyse').length}
                 </p>
                 <p className="text-sm mt-1">
@@ -2017,9 +2167,9 @@ export default function NutricropsQualityExcellence() {
                     : 0}%
                 </p>
               </div>
-              <div className="bg-gradient-to-br from-red-500 to-red-600 p-6 rounded-xl shadow-lg text-center text-white">
+              <div className="bg-gradient-to-br from-red-500 to-red-600 p-4 sm:p-6 rounded-xl shadow-lg text-center text-white">
                 <p className="text-red-100 text-sm mb-2 font-medium">Devenus réclamations</p>
-                <p className="text-5xl font-bold">
+                <p className="text-2xl sm:text-3xl lg:text-5xl font-bold">
                   {filteredIncidents.filter(i => i.statut === 'transforme_reclamation').length}
                 </p>
                 <p className="text-sm mt-1">
@@ -2033,38 +2183,37 @@ export default function NutricropsQualityExcellence() {
         )}
       </div>
 
-      {/* MODAL NOUVELLE RÉCLAMATION - MIS À JOUR */}
+      {/* MODAL NOUVELLE RÉCLAMATION - AVEC PRODUITS DYNAMIQUES */}
       {showNewReclamation && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-t-2xl">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-2 sm:p-4 z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-t-xl sm:rounded-t-2xl">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold">Nouvelle Réclamation Client</h2>
+                <h2 className="text-lg sm:text-xl lg:text-2xl font-bold">Nouvelle Réclamation Client</h2>
                 <button 
                   onClick={() => setShowNewReclamation(false)}
-                  className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
+                  className="text-white hover:bg-white/20 p-1 sm:p-2 rounded-lg transition-colors"
                 >
-                  <X className="w-6 h-6" />
+                  <X className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
               </div>
             </div>
             
-            <div className="p-6 space-y-5">
+            <div className="p-4 sm:p-6 space-y-4">
               <form onSubmit={(e) => {
                 e.preventDefault();
                 const formData = new FormData(e.target);
                 const data = Object.fromEntries(formData.entries());
                 addNewReclamation(data);
               }}>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Client *</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Client</label>
                     <input 
                       name="client"
                       type="text" 
                       placeholder="Ex: HELM AG" 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" 
-                      required
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm" 
                     />
                   </div>
                   <div>
@@ -2076,7 +2225,7 @@ export default function NutricropsQualityExcellence() {
                         setSelectedRegion(e.target.value);
                         setSearchPays(''); // Réinitialiser la recherche pays
                       }}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                       required
                     >
                       <option value="">Sélectionner...</option>
@@ -2084,6 +2233,7 @@ export default function NutricropsQualityExcellence() {
                       <option>Asie</option>
                       <option>Amérique</option>
                       <option>Afrique</option>
+                      <option>Océanie</option>
                     </select>
                   </div>
                 </div>
@@ -2103,15 +2253,15 @@ export default function NutricropsQualityExcellence() {
                           setShowPaysSuggestions(true);
                         }}
                         onFocus={() => setShowPaysSuggestions(true)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                         required
                       />
                       {showPaysSuggestions && filteredPays.length > 0 && (
-                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                           {filteredPays.map((pays) => (
                             <div
                               key={pays}
-                              className="px-4 py-2 hover:bg-green-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                              className="px-3 sm:px-4 py-2 hover:bg-green-50 cursor-pointer border-b border-gray-100 last:border-b-0 text-sm"
                               onClick={() => {
                                 setSearchPays(pays);
                                 setShowPaysSuggestions(false);
@@ -2129,14 +2279,14 @@ export default function NutricropsQualityExcellence() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Navire *</label>
                     <input 
                       name="navire"
                       type="text" 
                       placeholder="Ex: MV ARKLOW MILL" 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" 
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm" 
                       required
                     />
                   </div>
@@ -2144,7 +2294,7 @@ export default function NutricropsQualityExcellence() {
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Site *</label>
                     <select 
                       name="site"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                       required
                     >
                       <option value="">Sélectionner...</option>
@@ -2154,30 +2304,40 @@ export default function NutricropsQualityExcellence() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                {/* PRODUITS DYNAMIQUES - RÉCLAMATION */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Qualité Produit *</label>
+                    <div className="flex items-center justify-between">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Produit *</label>
+                      <button 
+                        type="button"
+                        onClick={loadProduitsData}
+                        className="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded mb-2"
+                        disabled={loadingProduits}
+                      >
+                        {loadingProduits ? '🔄' : '🔄'}
+                      </button>
+                    </div>
                     <select 
                       name="qualite"
                       value={selectedProduit}
                       onChange={(e) => setSelectedProduit(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                       required
+                      disabled={loadingProduits}
                     >
-                      <option value="">Sélectionner...</option>
-                      <option>TSP EURO</option>
-                      <option>TSP CIV</option>
-                      <option>DAP EURO Low Cd</option>
-                      <option>MAP 11 52 EU</option>
-                      <option>NPK 15 15 15 Low Cd</option>
-                      <option>NP 10 30 EU</option>
+                      <option value="">{loadingProduits ? 'Chargement...' : 'Sélectionner...'}</option>
+                      {Object.keys(produitsData).map(produit => (
+                        <option key={produit} value={produit}>{produit}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Sous-Produit</label>
                     <select 
                       name="sous_produit"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                      disabled={loadingProduits || !selectedProduit}
                     >
                       <option value="">Sélectionner un sous-produit...</option>
                       {selectedProduit && produitsData[selectedProduit]?.map((sousProduit) => (
@@ -2187,15 +2347,14 @@ export default function NutricropsQualityExcellence() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Quantité (MT) *</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Quantité (MT)</label>
                     <input 
                       name="quantite"
                       type="number" 
                       placeholder="Ex: 5500" 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" 
-                      required
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm" 
                     />
                   </div>
                   <div>
@@ -2203,7 +2362,7 @@ export default function NutricropsQualityExcellence() {
                     <input 
                       name="date_bl"
                       type="date" 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" 
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm" 
                       required
                     />
                   </div>
@@ -2215,18 +2374,18 @@ export default function NutricropsQualityExcellence() {
                   <input 
                     name="date_reception"
                     type="date" 
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" 
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm" 
                     required
                   />
                 </div>
 
-                <div className="bg-purple-50 border-2 border-purple-300 rounded-lg p-4">
-                  <label className="flex items-center gap-3 cursor-pointer">
+                <div className="bg-purple-50 border-2 border-purple-300 rounded-lg p-3 sm:p-4">
+                  <label className="flex items-start sm:items-center gap-3 cursor-pointer">
                     <input 
                       name="nouveau_produit"
                       type="checkbox" 
                       value="true"
-                      className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                      className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500 mt-1 sm:mt-0"
                     />
                     <div>
                       <span className="text-sm font-bold text-purple-900">Il s'agit d'un nouveau produit</span>
@@ -2239,7 +2398,7 @@ export default function NutricropsQualityExcellence() {
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Type d'Incident *</label>
                   <select 
                     name="type_incident"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                     required
                   >
                     <option value="">Sélectionner...</option>
@@ -2260,17 +2419,16 @@ export default function NutricropsQualityExcellence() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Problème Signalé *</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Problème Signalé</label>
                   <textarea 
                     name="probleme"
-                    rows="4" 
+                    rows="3" 
                     placeholder="Décrire le problème en détail..." 
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    required
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                   ></textarea>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Montant Demandé (MAD)</label>
                     <input 
@@ -2278,15 +2436,15 @@ export default function NutricropsQualityExcellence() {
                       type="number" 
                       step="0.01" 
                       placeholder="0.00" 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" 
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm" 
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Priorité *</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Priorité</label>
                     <select 
                       name="priorite"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      required
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                      defaultValue="moyenne"
                     >
                       <option value="basse">Basse</option>
                       <option value="moyenne">Moyenne</option>
@@ -2295,10 +2453,10 @@ export default function NutricropsQualityExcellence() {
                   </div>
                 </div>
 
-                <div className="flex gap-4 pt-4">
+                <div className="flex flex-col sm:flex-row gap-3 pt-4">
                   <button 
                     type="submit"
-                    className="flex-1 bg-green-600 text-white py-4 rounded-lg hover:bg-green-700 transition-colors font-bold text-lg"
+                    className="flex-1 bg-green-600 text-white py-3 sm:py-4 rounded-lg hover:bg-green-700 transition-colors font-bold text-sm sm:text-base"
                   >
                     {loading ? 'Enregistrement...' : 'Créer la Réclamation'}
                   </button>
@@ -2310,7 +2468,7 @@ export default function NutricropsQualityExcellence() {
                       setSelectedProduit('');
                       setSearchPays('');
                     }} 
-                    className="flex-1 bg-gray-200 text-gray-700 py-4 rounded-lg hover:bg-gray-300 transition-colors font-bold text-lg"
+                    className="flex-1 bg-gray-200 text-gray-700 py-3 sm:py-4 rounded-lg hover:bg-gray-300 transition-colors font-bold text-sm sm:text-base"
                   >
                     Annuler
                   </button>
@@ -2321,38 +2479,37 @@ export default function NutricropsQualityExcellence() {
         </div>
       )}
 
-      {/* MODAL NOUVEL INCIDENT - COMPLÈTEMENT MIS À JOUR */}
+      {/* MODAL NOUVEL INCIDENT - AVEC PRODUITS DYNAMIQUES */}
       {showNewIncident && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-t-2xl">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-2 sm:p-4 z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-t-xl sm:rounded-t-2xl">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold">Nouvel Incident Qualité</h2>
+                <h2 className="text-lg sm:text-xl lg:text-2xl font-bold">Nouvel Incident Qualité</h2>
                 <button 
                   onClick={() => setShowNewIncident(false)}
-                  className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
+                  className="text-white hover:bg-white/20 p-1 sm:p-2 rounded-lg transition-colors"
                 >
-                  <X className="w-6 h-6" />
+                  <X className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
               </div>
             </div>
             
-            <div className="p-6 space-y-5">
+            <div className="p-4 sm:p-6 space-y-4">
               <form onSubmit={(e) => {
                 e.preventDefault();
                 const formData = new FormData(e.target);
                 const data = Object.fromEntries(formData.entries());
                 addNewIncident(data);
               }}>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Client *</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Client</label>
                     <input 
                       name="client"
                       type="text" 
                       placeholder="Ex: HELM AG" 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent" 
-                      required
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm" 
                     />
                   </div>
                   <div>
@@ -2364,7 +2521,7 @@ export default function NutricropsQualityExcellence() {
                         setSelectedRegionIncident(e.target.value);
                         setSearchPaysIncident(''); // Réinitialiser la recherche pays
                       }}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
                       required
                     >
                       <option value="">Sélectionner...</option>
@@ -2372,6 +2529,7 @@ export default function NutricropsQualityExcellence() {
                       <option>Asie</option>
                       <option>Amérique</option>
                       <option>Afrique</option>
+                      <option>Océanie</option>
                     </select>
                   </div>
                 </div>
@@ -2391,15 +2549,15 @@ export default function NutricropsQualityExcellence() {
                           setShowPaysSuggestionsIncident(true);
                         }}
                         onFocus={() => setShowPaysSuggestionsIncident(true)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
                         required
                       />
                       {showPaysSuggestionsIncident && filteredPaysIncident.length > 0 && (
-                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                           {filteredPaysIncident.map((pays) => (
                             <div
                               key={pays}
-                              className="px-4 py-2 hover:bg-orange-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                              className="px-3 sm:px-4 py-2 hover:bg-orange-50 cursor-pointer border-b border-gray-100 last:border-b-0 text-sm"
                               onClick={() => {
                                 setSearchPaysIncident(pays);
                                 setShowPaysSuggestionsIncident(false);
@@ -2417,14 +2575,14 @@ export default function NutricropsQualityExcellence() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Navire *</label>
                     <input 
                       name="navire"
                       type="text" 
                       placeholder="Ex: MV ADAMOON" 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent" 
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm" 
                       required
                     />
                   </div>
@@ -2432,7 +2590,7 @@ export default function NutricropsQualityExcellence() {
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Site *</label>
                     <select 
                       name="site"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
                       required
                     >
                       <option value="">Sélectionner...</option>
@@ -2442,30 +2600,40 @@ export default function NutricropsQualityExcellence() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                {/* PRODUITS DYNAMIQUES - INCIDENT */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Produit *</label>
+                    <div className="flex items-center justify-between">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Produit *</label>
+                      <button 
+                        type="button"
+                        onClick={loadProduitsData}
+                        className="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded mb-2"
+                        disabled={loadingProduits}
+                      >
+                        {loadingProduits ? '🔄' : '🔄'}
+                      </button>
+                    </div>
                     <select 
                       name="produit"
                       value={selectedProduitIncident}
                       onChange={(e) => setSelectedProduitIncident(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
                       required
+                      disabled={loadingProduits}
                     >
-                      <option value="">Sélectionner...</option>
-                      <option>TSP EURO</option>
-                      <option>TSP CIV</option>
-                      <option>DAP EURO Low Cd</option>
-                      <option>MAP 11 52 EU</option>
-                      <option>NPK 15 15 15 Low Cd</option>
-                      <option>NP 10 30 EU</option>
+                      <option value="">{loadingProduits ? 'Chargement...' : 'Sélectionner...'}</option>
+                      {Object.keys(produitsData).map(produit => (
+                        <option key={produit} value={produit}>{produit}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Sous-Produit</label>
                     <select 
                       name="sous_produit"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                      disabled={loadingProduits || !selectedProduitIncident}
                     >
                       <option value="">Sélectionner un sous-produit...</option>
                       {selectedProduitIncident && produitsData[selectedProduitIncident]?.map((sousProduit) => (
@@ -2475,15 +2643,14 @@ export default function NutricropsQualityExcellence() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Quantité Chargée (MT) *</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Quantité Chargée (MT)</label>
                     <input 
                       name="quantite"
                       type="number" 
                       placeholder="Ex: 5500" 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent" 
-                      required
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm" 
                     />
                   </div>
                   <div>
@@ -2491,59 +2658,49 @@ export default function NutricropsQualityExcellence() {
                     <input 
                       name="date_chargement"
                       type="date" 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent" 
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm" 
                       required
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Date B/L</label>
                     <input 
                       name="date_bl"
                       type="date" 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent" 
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm" 
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Date de Réception</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Date de Détection *</label>
                     <input 
-                      name="date_reception"
+                      name="date_detection"
                       type="date" 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent" 
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm" 
+                      required
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Port de Destination</label>
-                    <input 
-                      name="port_destination"
-                      type="text" 
-                      placeholder="Ex: SZCZECIN - Poland" 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent" 
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Port de Déchargement</label>
-                    <input 
-                      name="port_dechargement"
-                      type="text" 
-                      placeholder="Ex: ROTTERDAM" 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent" 
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Port de Destination</label>
+                  <input 
+                    name="port_destination"
+                    type="text" 
+                    placeholder="Ex: SZCZECIN - Poland" 
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm" 
+                  />
                 </div>
 
-                <div className="bg-purple-50 border-2 border-purple-300 rounded-lg p-4">
-                  <label className="flex items-center gap-3 cursor-pointer">
+                <div className="bg-purple-50 border-2 border-purple-300 rounded-lg p-3 sm:p-4">
+                  <label className="flex items-start sm:items-center gap-3 cursor-pointer">
                     <input 
                       name="nouveau_produit"
                       type="checkbox" 
                       value="true"
-                      className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                      className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500 mt-1 sm:mt-0"
                     />
                     <div>
                       <span className="text-sm font-bold text-purple-900">Il s'agit d'un nouveau produit</span>
@@ -2556,39 +2713,37 @@ export default function NutricropsQualityExcellence() {
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Type d'Incident *</label>
                   <select 
                     name="type_incident"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
                     required
                   >
                     <option value="">Sélectionner...</option>
+                    <option>Prise en masse</option>
+                    <option>Poussière</option>
                     <option>Contamination</option>
-                    <option>Caked Product (Prise en masse)</option>
-                    <option>Dusty Product (Poussière)</option>
-                    <option>Foreign Body (Corps étranger)</option>
-                    <option>Wet Product (Humidité)</option>
-                    <option>Couleur</option>
                     <option>Granulométrie</option>
+                    <option>Corps étranger</option>
+                    <option>Composition chimique</option>
                     <option>Odeur</option>
+                    <option>Humidité</option>
                     <option>Particules noires</option>
+                    <option>Couleur</option>
                     <option>Produit huileux</option>
                     <option>Sous enrobage</option>
                     <option>Température élevée</option>
-                    <option>Composition chimique</option>
-                    <option>Autre</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Description de l'Incident *</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Description de l'Incident</label>
                   <textarea 
                     name="probleme"
-                    rows="4" 
+                    rows="3" 
                     placeholder="Décrire l'incident qualité observé en détail..." 
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    required
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
                   ></textarea>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Montant Demandé (MAD)</label>
                     <input 
@@ -2596,29 +2751,14 @@ export default function NutricropsQualityExcellence() {
                       type="number" 
                       step="0.01" 
                       placeholder="0.00" 
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent" 
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm" 
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Priorité *</label>
-                    <select 
-                      name="priorite"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      required
-                    >
-                      <option value="basse">Basse</option>
-                      <option value="moyenne">Moyenne</option>
-                      <option value="haute">Haute</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Sévérité *</label>
                     <select 
                       name="severite"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
                       required
                     >
                       <option value="faible">Faible</option>
@@ -2627,19 +2767,20 @@ export default function NutricropsQualityExcellence() {
                       <option value="critique">Critique</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Statut *</label>
-                    <select 
-                      name="statut"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      required
-                    >
-                      <option value="detecte">Détecté</option>
-                      <option value="en_analyse">En analyse</option>
-                      <option value="resolu">Résolu</option>
-                      <option value="transforme_reclamation">Transformé en réclamation</option>
-                    </select>
-                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Statut *</label>
+                  <select 
+                    name="statut"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                    required
+                  >
+                    <option value="detecte">Détecté</option>
+                    <option value="en_analyse">En analyse</option>
+                    <option value="resolu">Résolu</option>
+                    <option value="transforme_reclamation">Transformé en réclamation</option>
+                  </select>
                 </div>
 
                 <div>
@@ -2648,20 +2789,20 @@ export default function NutricropsQualityExcellence() {
                     name="inspecteur"
                     type="text" 
                     placeholder="Nom de l'inspecteur" 
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent" 
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm" 
                   />
                 </div>
 
-                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                <div className="bg-blue-50 border-l-4 border-blue-500 p-3 sm:p-4 rounded">
                   <p className="text-sm text-blue-900">
                     <span className="font-bold">📋 Parcours de l'incident :</span> Un incident peut être <strong>résolu directement</strong> ou <strong>transformé en réclamation</strong> si le client fait une demande formelle de dédommagement.
                   </p>
                 </div>
 
-                <div className="flex gap-4 pt-4">
+                <div className="flex flex-col sm:flex-row gap-3 pt-4">
                   <button 
                     type="submit"
-                    className="flex-1 bg-orange-600 text-white py-4 rounded-lg hover:bg-orange-700 transition-colors font-bold text-lg"
+                    className="flex-1 bg-orange-600 text-white py-3 sm:py-4 rounded-lg hover:bg-orange-700 transition-colors font-bold text-sm sm:text-base"
                   >
                     {loading ? 'Enregistrement...' : 'Enregistrer l\'Incident'}
                   </button>
@@ -2673,7 +2814,7 @@ export default function NutricropsQualityExcellence() {
                       setSelectedProduitIncident('');
                       setSearchPaysIncident('');
                     }} 
-                    className="flex-1 bg-gray-200 text-gray-700 py-4 rounded-lg hover:bg-gray-300 transition-colors font-bold text-lg"
+                    className="flex-1 bg-gray-200 text-gray-700 py-3 sm:py-4 rounded-lg hover:bg-gray-300 transition-colors font-bold text-sm sm:text-base"
                   >
                     Annuler
                   </button>
@@ -2687,26 +2828,26 @@ export default function NutricropsQualityExcellence() {
       {/* MODAL DE CONFIRMATION DE SUPPRESSION */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900">Confirmer la suppression</h2>
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full mx-4">
+            <div className="p-4 sm:p-6 border-b border-gray-200">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">Confirmer la suppression</h2>
             </div>
             
-            <div className="p-6">
-              <p className="text-gray-700 mb-6">
+            <div className="p-4 sm:p-6">
+              <p className="text-gray-700 mb-4 sm:mb-6 text-sm sm:text-base">
                 Êtes-vous sûr de vouloir supprimer cet incident ? Cette action est irréversible.
               </p>
               
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button 
                   onClick={() => deleteIncident(deleteConfirm)}
-                  className="flex-1 bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition-colors font-semibold"
+                  className="flex-1 bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm sm:text-base"
                 >
                   {loading ? 'Suppression...' : 'Supprimer'}
                 </button>
                 <button 
                   onClick={() => setDeleteConfirm(null)}
-                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
+                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition-colors font-semibold text-sm sm:text-base"
                 >
                   Annuler
                 </button>
@@ -2719,29 +2860,29 @@ export default function NutricropsQualityExcellence() {
       {/* MODAL DE CONFIRMATION DE SUPPRESSION RÉCLAMATION */}
       {deleteReclamationConfirm && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900">Confirmer la suppression</h2>
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full mx-4">
+            <div className="p-4 sm:p-6 border-b border-gray-200">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">Confirmer la suppression</h2>
             </div>
             
-            <div className="p-6">
-              <p className="text-gray-700 mb-4">
+            <div className="p-4 sm:p-6">
+              <p className="text-gray-700 mb-4 text-sm sm:text-base">
                 Êtes-vous sûr de vouloir supprimer la réclamation <strong>{deleteReclamationConfirm.readable_id}</strong> ?
               </p>
-              <p className="text-sm text-red-600 mb-6">
+              <p className="text-sm text-red-600 mb-4 sm:mb-6">
                 ⚠️ Cette action est irréversible et supprimera définitivement toutes les données de cette réclamation.
               </p>
               
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button 
                   onClick={() => deleteReclamation(deleteReclamationConfirm.id)}
-                  className="flex-1 bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition-colors font-semibold"
+                  className="flex-1 bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm sm:text-base"
                 >
                   {loading ? 'Suppression...' : 'Supprimer'}
                 </button>
                 <button 
                   onClick={() => setDeleteReclamationConfirm(null)}
-                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
+                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition-colors font-semibold text-sm sm:text-base"
                 >
                   Annuler
                 </button>
