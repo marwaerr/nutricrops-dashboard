@@ -137,7 +137,7 @@ export default function NutricropsQualityExcellence() {
       'France', 'Allemagne', 'Espagne', 'Italie', 'Royaume-Uni', 'Pays-Bas', 'Belgique', 
       'Pologne', 'Portugal', 'Suède', 'Danemark', 'Finlande', 'Norvège', 'Suisse', 'Autriche',
       'Ukraine', 'Bulgarie', 'Irlande', 'Lettonie', 'Lituanie', 'Roumanie', 'Grèce',
-      'République Tchèque', 'Hongrie', 'Slovaquie', 'Croatie', 'Slovénie', 'Estonie'
+      'République Tchèque', 'Hongrie', 'Slovaquie', 'Croatie', 'Slovénie', 'Estonie','Latvia'
     ],
     Asie: [
       'Chine', 'Japon', 'Corée du Sud', 'Inde', 'Vietnam', 'Thaïlande', 'Malaisie', 
