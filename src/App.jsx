@@ -2,6 +2,86 @@ import React, { useState, useEffect } from 'react';
 import { AlertCircle, CheckCircle, Clock, FileText, Ship, Package, Users, Calendar, Mail, Filter, Search, Plus, Download, TrendingUp, TrendingDown, BarChart3, PieChart, X, MapPin, Edit, Save, Trash2 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
+// Composant pour la sélection multiple des types d'incident
+const MultipleIncidentTypesSelector = ({ selectedTypes, onTypesChange, label, required = false }) => {
+  const incidentTypesOptions = [
+    'Prise en masse',
+    'Poussière',
+    'Contamination',
+    'Granulométrie',
+    'Corps étranger',
+    'Composition chimique',
+    'Odeur',
+    'Humidité',
+    'Particules noires',
+    'Couleur',
+    'Produit huileux',
+    'Sous enrobage',
+    'Température élevée'
+  ];
+
+  const toggleType = (type) => {
+    const newTypes = selectedTypes.includes(type)
+      ? selectedTypes.filter(t => t !== type)
+      : [...selectedTypes, type];
+    onTypesChange(newTypes);
+  };
+
+  return (
+    <div>
+      <label className="block text-sm font-semibold text-gray-700 mb-2">
+        {label} {required && '*'}
+      </label>
+      
+      {/* Affichage des types sélectionnés */}
+      {selectedTypes.length > 0 && (
+        <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-sm font-medium text-green-800 mb-2">Types sélectionnés:</p>
+          <div className="flex flex-wrap gap-2">
+            {selectedTypes.map(type => (
+              <span 
+                key={type}
+                className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium border border-green-200"
+              >
+                {type}
+                <button
+                  type="button"
+                  onClick={() => toggleType(type)}
+                  className="text-green-600 hover:text-green-800 ml-1"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Liste des options */}
+      <div className="border border-gray-300 rounded-lg max-h-48 overflow-y-auto">
+        {incidentTypesOptions.map(type => (
+          <label 
+            key={type}
+            className="flex items-center gap-3 p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              checked={selectedTypes.includes(type)}
+              onChange={() => toggleType(type)}
+              className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+            />
+            <span className="text-sm text-gray-700">{type}</span>
+          </label>
+        ))}
+      </div>
+      
+      {selectedTypes.length === 0 && (
+        <p className="text-xs text-gray-500 mt-1">Aucun type sélectionné. Cliquez pour choisir.</p>
+      )}
+    </div>
+  );
+};
+
 export default function NutricropsQualityExcellence() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedReclamation, setSelectedReclamation] = useState(null);
@@ -46,6 +126,10 @@ export default function NutricropsQualityExcellence() {
   // États pour les produits depuis la base de données
   const [produitsData, setProduitsData] = useState({});
   const [loadingProduits, setLoadingProduits] = useState(false);
+
+  // États pour les types d'incident multiples
+  const [selectedIncidentTypes, setSelectedIncidentTypes] = useState([]);
+  const [selectedIncidentTypesIncident, setSelectedIncidentTypesIncident] = useState([]);
 
   // Données pour les régions et pays - VERSION COMPLÈTE
   const [regionsData, setRegionsData] = useState({
@@ -448,6 +532,13 @@ export default function NutricropsQualityExcellence() {
     setLoading(true);
     
     try {
+      // Vérifier qu'au moins un type est sélectionné
+      if (selectedIncidentTypes.length === 0) {
+        alert('Veuillez sélectionner au moins un type d\'incident');
+        setLoading(false);
+        return;
+      }
+
       const readableId = generateReadableId(
         'REC', 
         formData.date_reception || new Date(), 
@@ -462,10 +553,10 @@ export default function NutricropsQualityExcellence() {
         qualite: formData.qualite,
         sous_produit: formData.sous_produit || null,
         quantite: parseInt(formData.quantite) || 0,
-        type_incident: formData.type_incident,
+        type_incident: selectedIncidentTypes.join(', '), // Convertir en string séparée par des virgules
         probleme: formData.probleme || 'Non spécifié',
         statut: 'nouveau',
-        priorite: formData.priorite || 'moyenne', // Priorité par défaut "moyenne"
+        priorite: formData.priorite || 'moyenne',
         region: formData.region,
         pays: formData.pays || 'À définir',
         date_bl: formData.date_bl,
@@ -491,6 +582,7 @@ export default function NutricropsQualityExcellence() {
         setSelectedRegion('');
         setSelectedProduit('');
         setSearchPays('');
+        setSelectedIncidentTypes([]); // Réinitialiser les types sélectionnés
         await loadDashboardStats();
         alert('Réclamation créée avec succès!');
       }
@@ -612,9 +704,9 @@ export default function NutricropsQualityExcellence() {
         type_incident: incident.type_incident,
         probleme: incident.probleme || `Incident transformé: ${incident.type_incident}`,
         statut: 'nouveau',
-        priorite: 'moyenne', // Priorité par défaut "moyenne"
+        priorite: 'moyenne',
         date_bl: incident.date_bl,
-        date_reception: dateReception, // Utiliser la date de détection
+        date_reception: dateReception,
         montant_demande: incident.montant_demande || 0,
         montant_dedommage: 0,
         nouveau_produit: incident.nouveau_produit || false,
@@ -673,6 +765,13 @@ export default function NutricropsQualityExcellence() {
     setLoading(true);
     
     try {
+      // Vérifier qu'au moins un type est sélectionné
+      if (selectedIncidentTypesIncident.length === 0) {
+        alert('Veuillez sélectionner au moins un type d\'incident');
+        setLoading(false);
+        return;
+      }
+
       const readableId = generateReadableId(
         'INC', 
         formData.date_detection || new Date(), 
@@ -699,7 +798,7 @@ export default function NutricropsQualityExcellence() {
         nouveau_produit: formData.nouveau_produit === 'true',
         
         // Détails de l'incident
-        type_incident: formData.type_incident,
+        type_incident: selectedIncidentTypesIncident.join(', '), // Convertir en string séparée par des virgules
         probleme: formData.probleme || 'Non spécifié',
         severite: formData.severite,
         statut: formData.statut,
@@ -730,6 +829,7 @@ export default function NutricropsQualityExcellence() {
         setSelectedRegionIncident('');
         setSelectedProduitIncident('');
         setSearchPaysIncident('');
+        setSelectedIncidentTypesIncident([]); // Réinitialiser les types sélectionnés
         alert('Incident créé avec succès!');
       }
     } catch (error) {
@@ -1282,234 +1382,232 @@ export default function NutricropsQualityExcellence() {
                   </div>
                 </div>
 
-                
-                {/* Graphique d'évolution - VERSION AVANCÉE */}
-{/* Graphique d'évolution - VERSION RESPONSIVE */}
-<div className="bg-white p-3 sm:p-6 rounded-xl shadow-lg">
-  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Évolution du Nombre de Réclamations et Incidents par Année</h3>
-  
-  {/* Légende responsive */}
-  <div className="flex flex-wrap justify-center gap-3 sm:gap-6 mb-4">
-    <div className="flex items-center gap-2">
-      <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-t from-green-500 to-green-600 rounded"></div>
-      <span className="text-xs sm:text-sm font-medium text-gray-700">Réclamations</span>
-    </div>
-    <div className="flex items-center gap-2">
-      <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-t from-blue-500 to-blue-600 rounded"></div>
-      <span className="text-xs sm:text-sm font-medium text-gray-700">Incidents</span>
-    </div>
-  </div>
-
-  {/* Conteneur graphique responsive */}
-  <div className="h-48 sm:h-64 lg:h-80 relative">
-    {evolutionData.length > 0 ? (
-      <>
-        {/* Grille d'arrière-plan responsive */}
-        <div className="absolute inset-0 flex flex-col justify-between">
-          {[0, 25, 50, 75, 100].map((percent) => {
-            const maxValue = Math.max(
-              ...evolutionData.map(d => Math.max(d.reclamations, d.incidents))
-            );
-            return (
-              <div key={percent} className="flex items-center">
-                <div className="w-6 sm:w-8 lg:w-12 text-xs text-gray-400 text-right pr-1 sm:pr-2">
-                  {Math.round((percent / 100) * maxValue)}
-                </div>
-                <div className="flex-1 border-t border-gray-100"></div>
-              </div>
-            );
-          })}
-        </div>
-        
-        {/* Barres du graphique - VERSION RESPONSIVE */}
-        <div className="flex items-end justify-between h-full gap-1 sm:gap-2 lg:gap-4 pl-8 sm:pl-10 lg:pl-14">
-          {evolutionData.map((item) => {
-            // Trouver la valeur maximale entre toutes les réclamations et incidents
-            const maxValue = Math.max(
-              ...evolutionData.map(d => Math.max(d.reclamations, d.incidents))
-            );
-            
-            // Calculer les hauteurs proportionnelles
-            const heightReclamations = maxValue > 0 ? (item.reclamations / maxValue) * 95 : 0;
-            const heightIncidents = maxValue > 0 ? (item.incidents / maxValue) * 95 : 0;
-
-            return (
-              <div key={item.year} className="flex-1 flex flex-col items-center justify-end h-full min-w-0">
-                {/* Conteneur principal pour les deux barres */}
-                <div className="flex items-end justify-center gap-0.5 sm:gap-1 w-full" style={{ height: '95%' }}>
-                  {/* Barre des incidents */}
-                  <div className="flex flex-col items-center justify-end h-full">
-                    <div 
-                      className="w-4 sm:w-6 lg:w-8 xl:w-10 bg-gradient-to-t from-blue-500 to-blue-600 rounded-t transition-all duration-500 hover:from-blue-600 hover:to-blue-700 relative group"
-                      style={{ 
-                        height: `${heightIncidents}%`,
-                        minHeight: heightIncidents > 0 ? '2px' : '0px'
-                      }}
-                    >
-                      {/* Tooltip pour mobile et desktop */}
-                      <div className="absolute -top-6 sm:-top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 hidden sm:block">
-                        {item.incidents} incidents
-                      </div>
+                {/* Graphique d'évolution - VERSION RESPONSIVE */}
+                <div className="bg-white p-3 sm:p-6 rounded-xl shadow-lg">
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Évolution du Nombre de Réclamations et Incidents par Année</h3>
+                  
+                  {/* Légende responsive */}
+                  <div className="flex flex-wrap justify-center gap-3 sm:gap-6 mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-t from-green-500 to-green-600 rounded"></div>
+                      <span className="text-xs sm:text-sm font-medium text-gray-700">Réclamations</span>
                     </div>
-                    {/* Nombre d'incidents - visible sur tous les écrans */}
-                    <div className="mt-1 text-[10px] xs:text-xs sm:text-sm font-bold text-blue-700 text-center leading-tight">
-                      {item.incidents}
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-t from-blue-500 to-blue-600 rounded"></div>
+                      <span className="text-xs sm:text-sm font-medium text-gray-700">Incidents</span>
                     </div>
                   </div>
 
-                  {/* Barre des réclamations */}
-                  <div className="flex flex-col items-center justify-end h-full">
-                    <div 
-                      className="w-4 sm:w-6 lg:w-8 xl:w-10 bg-gradient-to-t from-green-500 to-green-600 rounded-t transition-all duration-500 hover:from-green-600 hover:to-green-700 relative group"
-                      style={{ 
-                        height: `${heightReclamations}%`,
-                        minHeight: heightReclamations > 0 ? '2px' : '0px'
-                      }}
-                    >
-                      {/* Tooltip pour mobile et desktop */}
-                      <div className="absolute -top-6 sm:-top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 hidden sm:block">
-                        {item.reclamations} réclamations
+                  {/* Conteneur graphique responsive */}
+                  <div className="h-48 sm:h-64 lg:h-80 relative">
+                    {evolutionData.length > 0 ? (
+                      <>
+                        {/* Grille d'arrière-plan responsive */}
+                        <div className="absolute inset-0 flex flex-col justify-between">
+                          {[0, 25, 50, 75, 100].map((percent) => {
+                            const maxValue = Math.max(
+                              ...evolutionData.map(d => Math.max(d.reclamations, d.incidents))
+                            );
+                            return (
+                              <div key={percent} className="flex items-center">
+                                <div className="w-6 sm:w-8 lg:w-12 text-xs text-gray-400 text-right pr-1 sm:pr-2">
+                                  {Math.round((percent / 100) * maxValue)}
+                                </div>
+                                <div className="flex-1 border-t border-gray-100"></div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        
+                        {/* Barres du graphique - VERSION RESPONSIVE */}
+                        <div className="flex items-end justify-between h-full gap-1 sm:gap-2 lg:gap-4 pl-8 sm:pl-10 lg:pl-14">
+                          {evolutionData.map((item) => {
+                            // Trouver la valeur maximale entre toutes les réclamations et incidents
+                            const maxValue = Math.max(
+                              ...evolutionData.map(d => Math.max(d.reclamations, d.incidents))
+                            );
+                            
+                            // Calculer les hauteurs proportionnelles
+                            const heightReclamations = maxValue > 0 ? (item.reclamations / maxValue) * 95 : 0;
+                            const heightIncidents = maxValue > 0 ? (item.incidents / maxValue) * 95 : 0;
+
+                            return (
+                              <div key={item.year} className="flex-1 flex flex-col items-center justify-end h-full min-w-0">
+                                {/* Conteneur principal pour les deux barres */}
+                                <div className="flex items-end justify-center gap-0.5 sm:gap-1 w-full" style={{ height: '95%' }}>
+                                  {/* Barre des incidents */}
+                                  <div className="flex flex-col items-center justify-end h-full">
+                                    <div 
+                                      className="w-4 sm:w-6 lg:w-8 xl:w-10 bg-gradient-to-t from-blue-500 to-blue-600 rounded-t transition-all duration-500 hover:from-blue-600 hover:to-blue-700 relative group"
+                                      style={{ 
+                                        height: `${heightIncidents}%`,
+                                        minHeight: heightIncidents > 0 ? '2px' : '0px'
+                                      }}
+                                    >
+                                      {/* Tooltip pour mobile et desktop */}
+                                      <div className="absolute -top-6 sm:-top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 hidden sm:block">
+                                        {item.incidents} incidents
+                                      </div>
+                                    </div>
+                                    {/* Nombre d'incidents - visible sur tous les écrans */}
+                                    <div className="mt-1 text-[10px] xs:text-xs sm:text-sm font-bold text-blue-700 text-center leading-tight">
+                                      {item.incidents}
+                                    </div>
+                                  </div>
+
+                                  {/* Barre des réclamations */}
+                                  <div className="flex flex-col items-center justify-end h-full">
+                                    <div 
+                                      className="w-4 sm:w-6 lg:w-8 xl:w-10 bg-gradient-to-t from-green-500 to-green-600 rounded-t transition-all duration-500 hover:from-green-600 hover:to-green-700 relative group"
+                                      style={{ 
+                                        height: `${heightReclamations}%`,
+                                        minHeight: heightReclamations > 0 ? '2px' : '0px'
+                                      }}
+                                    >
+                                      {/* Tooltip pour mobile et desktop */}
+                                      <div className="absolute -top-6 sm:-top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 hidden sm:block">
+                                        {item.reclamations} réclamations
+                                      </div>
+                                    </div>
+                                    {/* Nombre de réclamations - visible sur tous les écrans */}
+                                    <div className="mt-1 text-[10px] xs:text-xs sm:text-sm font-bold text-green-700 text-center leading-tight">
+                                      {item.reclamations}
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                {/* Label d'année responsive */}
+                                <div className="text-center mt-2 sm:mt-3 w-full px-1">
+                                  <p className="text-xs sm:text-sm font-semibold text-gray-700 truncate">
+                                    {item.year}
+                                  </p>
+                                  <p className="text-[10px] xs:text-xs text-gray-500 mt-0.5 sm:mt-1">
+                                    <span className="text-green-600 font-medium">{item.reclamations}R</span>
+                                    <span className="mx-0.5">/</span>
+                                    <span className="text-blue-600 font-medium">{item.incidents}I</span>
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Légende mobile pour les tooltips */}
+                        <div className="sm:hidden mt-4 text-center">
+                          <p className="text-xs text-gray-500">
+                            👆 Touchez les barres pour voir les détails
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <p className="text-gray-500 text-sm sm:text-base">Chargement des données d'évolution...</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Tableau récapitulatif responsive */}
+                  <div className="mt-6 sm:mt-8 grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+                    {evolutionData.map(item => {
+                      const maxReclamations = Math.max(...evolutionData.map(d => d.reclamations));
+                      const maxIncidents = Math.max(...evolutionData.map(d => d.incidents));
+                      
+                      return (
+                        <div key={item.year} className="text-center p-3 sm:p-4 bg-gradient-to-br from-gray-50 to-white rounded-lg border border-gray-200">
+                          <p className="text-base sm:text-lg font-bold text-gray-900 mb-2 sm:mb-3">{item.year}</p>
+                          
+                          <div className="space-y-2 sm:space-y-3">
+                            {/* Barre de progression pour les réclamations */}
+                            <div>
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="text-xs sm:text-sm text-gray-600 flex items-center gap-1">
+                                  <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded"></div>
+                                  <span className="hidden xs:inline">Réc:</span>
+                                  <span className="xs:hidden">R:</span>
+                                </span>
+                                <span className="text-sm sm:text-lg font-bold text-green-600">{item.reclamations}</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
+                                <div 
+                                  className="bg-green-500 h-1.5 sm:h-2 rounded-full transition-all duration-500"
+                                  style={{ width: `${maxReclamations > 0 ? (item.reclamations / maxReclamations) * 100 : 0}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                            
+                            {/* Barre de progression pour les incidents */}
+                            <div>
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="text-xs sm:text-sm text-gray-600 flex items-center gap-1">
+                                  <div className="w-2 h-2 sm:w-3 sm:h-3 bg-blue-500 rounded"></div>
+                                  <span className="hidden xs:inline">Inc:</span>
+                                  <span className="xs:hidden">I:</span>
+                                </span>
+                                <span className="text-sm sm:text-lg font-bold text-blue-600">{item.incidents}</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
+                                <div 
+                                  className="bg-blue-500 h-1.5 sm:h-2 rounded-full transition-all duration-500"
+                                  style={{ width: `${maxIncidents > 0 ? (item.incidents / maxIncidents) * 100 : 0}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                            
+                            {/* Ratio */}
+                            <div className="pt-2 border-t border-gray-200">
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="text-gray-500">Ratio:</span>
+                                <span className="font-semibold text-purple-600">
+                                  {item.incidents > 0 ? (item.reclamations / item.incidents).toFixed(1) : '∞'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Statistiques globales responsive */}
+                  <div className="mt-4 sm:mt-6 grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4">
+                    <div className="bg-green-50 p-3 sm:p-4 rounded-lg border border-green-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs sm:text-sm font-medium text-green-800">Total Réclamations</p>
+                          <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-900">
+                            {evolutionData.reduce((sum, item) => sum + item.reclamations, 0)}
+                          </p>
+                          <p className="text-xs text-green-600 mt-0.5 sm:mt-1">
+                            Moy: {(evolutionData.reduce((sum, item) => sum + item.reclamations, 0) / evolutionData.length).toFixed(1)}
+                          </p>
+                        </div>
+                        <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 flex-shrink-0 ml-2" />
                       </div>
                     </div>
-                    {/* Nombre de réclamations - visible sur tous les écrans */}
-                    <div className="mt-1 text-[10px] xs:text-xs sm:text-sm font-bold text-green-700 text-center leading-tight">
-                      {item.reclamations}
+                    
+                    <div className="bg-blue-50 p-3 sm:p-4 rounded-lg border border-blue-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs sm:text-sm font-medium text-blue-800">Total Incidents</p>
+                          <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-900">
+                            {evolutionData.reduce((sum, item) => sum + item.incidents, 0)}
+                          </p>
+                          <p className="text-xs text-blue-600 mt-0.5 sm:mt-1">
+                            Moy: {(evolutionData.reduce((sum, item) => sum + item.incidents, 0) / evolutionData.length).toFixed(1)}
+                          </p>
+                        </div>
+                        <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 flex-shrink-0 ml-2" />
+                      </div>
                     </div>
                   </div>
+
+                  {/* Indicateur responsive pour mobile */}
+                  <div className="mt-4 sm:hidden bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    <p className="text-xs text-yellow-800 text-center">
+                      <span className="font-semibold">💡 Conseil :</span> Tournez l'écran pour une meilleure visibilité
+                    </p>
+                  </div>
                 </div>
-                
-                {/* Label d'année responsive */}
-                <div className="text-center mt-2 sm:mt-3 w-full px-1">
-                  <p className="text-xs sm:text-sm font-semibold text-gray-700 truncate">
-                    {item.year}
-                  </p>
-                  <p className="text-[10px] xs:text-xs text-gray-500 mt-0.5 sm:mt-1">
-                    <span className="text-green-600 font-medium">{item.reclamations}R</span>
-                    <span className="mx-0.5">/</span>
-                    <span className="text-blue-600 font-medium">{item.incidents}I</span>
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Légende mobile pour les tooltips */}
-        <div className="sm:hidden mt-4 text-center">
-          <p className="text-xs text-gray-500">
-            👆 Touchez les barres pour voir les détails
-          </p>
-        </div>
-      </>
-    ) : (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-gray-500 text-sm sm:text-base">Chargement des données d'évolution...</p>
-      </div>
-    )}
-  </div>
-
-  {/* Tableau récapitulatif responsive */}
-  <div className="mt-6 sm:mt-8 grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-    {evolutionData.map(item => {
-      const maxReclamations = Math.max(...evolutionData.map(d => d.reclamations));
-      const maxIncidents = Math.max(...evolutionData.map(d => d.incidents));
-      
-      return (
-        <div key={item.year} className="text-center p-3 sm:p-4 bg-gradient-to-br from-gray-50 to-white rounded-lg border border-gray-200">
-          <p className="text-base sm:text-lg font-bold text-gray-900 mb-2 sm:mb-3">{item.year}</p>
-          
-          <div className="space-y-2 sm:space-y-3">
-            {/* Barre de progression pour les réclamations */}
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-xs sm:text-sm text-gray-600 flex items-center gap-1">
-                  <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded"></div>
-                  <span className="hidden xs:inline">Réc:</span>
-                  <span className="xs:hidden">R:</span>
-                </span>
-                <span className="text-sm sm:text-lg font-bold text-green-600">{item.reclamations}</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
-                <div 
-                  className="bg-green-500 h-1.5 sm:h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${maxReclamations > 0 ? (item.reclamations / maxReclamations) * 100 : 0}%` }}
-                ></div>
-              </div>
-            </div>
-            
-            {/* Barre de progression pour les incidents */}
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-xs sm:text-sm text-gray-600 flex items-center gap-1">
-                  <div className="w-2 h-2 sm:w-3 sm:h-3 bg-blue-500 rounded"></div>
-                  <span className="hidden xs:inline">Inc:</span>
-                  <span className="xs:hidden">I:</span>
-                </span>
-                <span className="text-sm sm:text-lg font-bold text-blue-600">{item.incidents}</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
-                <div 
-                  className="bg-blue-500 h-1.5 sm:h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${maxIncidents > 0 ? (item.incidents / maxIncidents) * 100 : 0}%` }}
-                ></div>
-              </div>
-            </div>
-            
-            {/* Ratio */}
-            <div className="pt-2 border-t border-gray-200">
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-gray-500">Ratio:</span>
-                <span className="font-semibold text-purple-600">
-                  {item.incidents > 0 ? (item.reclamations / item.incidents).toFixed(1) : '∞'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    })}
-  </div>
-
-  {/* Statistiques globales responsive */}
-  <div className="mt-4 sm:mt-6 grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4">
-    <div className="bg-green-50 p-3 sm:p-4 rounded-lg border border-green-200">
-      <div className="flex items-center justify-between">
-        <div className="flex-1 min-w-0">
-          <p className="text-xs sm:text-sm font-medium text-green-800">Total Réclamations</p>
-          <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-900">
-            {evolutionData.reduce((sum, item) => sum + item.reclamations, 0)}
-          </p>
-          <p className="text-xs text-green-600 mt-0.5 sm:mt-1">
-            Moy: {(evolutionData.reduce((sum, item) => sum + item.reclamations, 0) / evolutionData.length).toFixed(1)}
-          </p>
-        </div>
-        <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 flex-shrink-0 ml-2" />
-      </div>
-    </div>
-    
-    <div className="bg-blue-50 p-3 sm:p-4 rounded-lg border border-blue-200">
-      <div className="flex items-center justify-between">
-        <div className="flex-1 min-w-0">
-          <p className="text-xs sm:text-sm font-medium text-blue-800">Total Incidents</p>
-          <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-900">
-            {evolutionData.reduce((sum, item) => sum + item.incidents, 0)}
-          </p>
-          <p className="text-xs text-blue-600 mt-0.5 sm:mt-1">
-            Moy: {(evolutionData.reduce((sum, item) => sum + item.incidents, 0) / evolutionData.length).toFixed(1)}
-          </p>
-        </div>
-        <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 flex-shrink-0 ml-2" />
-      </div>
-    </div>
-  </div>
-
-  {/* Indicateur responsive pour mobile */}
-  <div className="mt-4 sm:hidden bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-    <p className="text-xs text-yellow-800 text-center">
-      <span className="font-semibold">💡 Conseil :</span> Tournez l'écran pour une meilleure visibilité
-    </p>
-  </div>
-</div>
               </div>
             )}
           </div>
@@ -1662,6 +1760,23 @@ export default function NutricropsQualityExcellence() {
                               )}
                             </div>
 
+                            {/* Affichage des types d'incident multiples */}
+                            {rec.type_incident && (
+                              <div className="mb-3">
+                                <span className="text-gray-600 text-sm">Types d'incident: </span>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {rec.type_incident.split(', ').map((type, index) => (
+                                    <span 
+                                      key={index}
+                                      className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium"
+                                    >
+                                      {type}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
                             <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded">
                               <p className="text-sm font-medium text-gray-900 line-clamp-2">{rec.probleme}</p>
                             </div>
@@ -1809,6 +1924,26 @@ export default function NutricropsQualityExcellence() {
                     </div>
                   </div>
 
+                  {/* Types d'incident multiples */}
+                  {selectedReclamation.type_incident && (
+                    <div className="bg-blue-50 border-l-4 border-blue-500 p-4 sm:p-6 rounded-lg">
+                      <h3 className="font-bold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2 text-base sm:text-lg">
+                        <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+                        Types d'Incident Signalés
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedReclamation.type_incident.split(', ').map((type, index) => (
+                          <span 
+                            key={index}
+                            className="inline-block px-3 py-2 bg-blue-100 text-blue-800 rounded-lg text-sm font-medium border border-blue-200"
+                          >
+                            {type}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Problème */}
                   <div className="bg-red-50 border-l-4 border-red-500 p-4 sm:p-6 rounded-lg">
                     <h3 className="font-bold text-gray-900 mb-2 sm:mb-3 flex items-center gap-2 text-base sm:text-lg">
@@ -1816,7 +1951,6 @@ export default function NutricropsQualityExcellence() {
                       Problème Signalé
                     </h3>
                     <p className="text-gray-900 font-medium text-sm sm:text-base">{selectedReclamation.probleme}</p>
-                    <p className="text-sm text-gray-600 mt-2">Type: {selectedReclamation.type_incident}</p>
                   </div>
 
                   {/* Informations Financières */}
@@ -2087,8 +2221,25 @@ export default function NutricropsQualityExcellence() {
                             </div>
                           )}
 
+                          {/* Affichage des types d'incident multiples */}
+                          {incident.type_incident && (
+                            <div className="mb-3">
+                              <span className="text-gray-600 text-sm">Types d'incident: </span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {incident.type_incident.split(', ').map((type, index) => (
+                                  <span 
+                                    key={index}
+                                    className="inline-block px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-medium"
+                                  >
+                                    {type}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
                           <div className="bg-orange-50 border-l-4 border-orange-500 p-3 rounded mb-3">
-                            <p className="text-sm font-medium text-gray-900 line-clamp-2">{incident.type_incident}</p>
+                            <p className="text-sm font-medium text-gray-900 line-clamp-2">{incident.probleme}</p>
                             {incident.inspecteur && (
                               <p className="text-xs text-gray-600 mt-1">Inspecteur: {incident.inspecteur}</p>
                             )}
@@ -2415,29 +2566,13 @@ export default function NutricropsQualityExcellence() {
                   </label>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Type d'Incident *</label>
-                  <select 
-                    name="type_incident"
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
-                    required
-                  >
-                    <option value="">Sélectionner...</option>
-                    <option>Prise en masse</option>
-                    <option>Poussière</option>
-                    <option>Contamination</option>
-                    <option>Granulométrie</option>
-                    <option>Corps étranger</option>
-                    <option>Composition chimique</option>
-                    <option>Odeur</option>
-                    <option>Humidité</option>
-                    <option>Particules noires</option>
-                    <option>Couleur</option>
-                    <option>Produit huileux</option>
-                    <option>Sous enrobage</option>
-                    <option>Température élevée</option>
-                  </select>
-                </div>
+                {/* Sélecteur multiple de types d'incident */}
+                <MultipleIncidentTypesSelector
+                  selectedTypes={selectedIncidentTypes}
+                  onTypesChange={setSelectedIncidentTypes}
+                  label="Types d'Incident *"
+                  required={true}
+                />
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Problème Signalé</label>
@@ -2488,6 +2623,7 @@ export default function NutricropsQualityExcellence() {
                       setSelectedRegion('');
                       setSelectedProduit('');
                       setSearchPays('');
+                      setSelectedIncidentTypes([]);
                     }} 
                     className="flex-1 bg-gray-200 text-gray-700 py-3 sm:py-4 rounded-lg hover:bg-gray-300 transition-colors font-bold text-sm sm:text-base"
                   >
@@ -2730,29 +2866,13 @@ export default function NutricropsQualityExcellence() {
                   </label>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Type d'Incident *</label>
-                  <select 
-                    name="type_incident"
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
-                    required
-                  >
-                    <option value="">Sélectionner...</option>
-                    <option>Prise en masse</option>
-                    <option>Poussière</option>
-                    <option>Contamination</option>
-                    <option>Granulométrie</option>
-                    <option>Corps étranger</option>
-                    <option>Composition chimique</option>
-                    <option>Odeur</option>
-                    <option>Humidité</option>
-                    <option>Particules noires</option>
-                    <option>Couleur</option>
-                    <option>Produit huileux</option>
-                    <option>Sous enrobage</option>
-                    <option>Température élevée</option>
-                  </select>
-                </div>
+                {/* Sélecteur multiple de types d'incident pour incident */}
+                <MultipleIncidentTypesSelector
+                  selectedTypes={selectedIncidentTypesIncident}
+                  onTypesChange={setSelectedIncidentTypesIncident}
+                  label="Types d'Incident *"
+                  required={true}
+                />
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Description de l'Incident</label>
@@ -2806,112 +2926,113 @@ export default function NutricropsQualityExcellence() {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Inspecteur</label>
-                  <input 
-                    name="inspecteur"
-                    type="text" 
-                    placeholder="Nom de l'inspecteur" 
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm" 
-                  />
-                </div>
+                    <input 
+                      name="inspecteur"
+                      type="text" 
+                      placeholder="Nom de l'inspecteur" 
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm" 
+                    />
+                  </div>
 
-                <div className="bg-blue-50 border-l-4 border-blue-500 p-3 sm:p-4 rounded">
-                  <p className="text-sm text-blue-900">
-                    <span className="font-bold">📋 Parcours de l'incident :</span> Un incident peut être <strong>résolu directement</strong> ou <strong>transformé en réclamation</strong> si le client fait une demande formelle de dédommagement.
-                  </p>
-                </div>
+                  <div className="bg-blue-50 border-l-4 border-blue-500 p-3 sm:p-4 rounded">
+                    <p className="text-sm text-blue-900">
+                      <span className="font-bold">📋 Parcours de l'incident :</span> Un incident peut être <strong>résolu directement</strong> ou <strong>transformé en réclamation</strong> si le client fait une demande formelle de dédommagement.
+                    </p>
+                  </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                    <button 
+                      type="submit"
+                      className="flex-1 bg-orange-600 text-white py-3 sm:py-4 rounded-lg hover:bg-orange-700 transition-colors font-bold text-sm sm:text-base"
+                    >
+                      {loading ? 'Enregistrement...' : 'Enregistrer l\'Incident'}
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setShowNewIncident(false);
+                        setSelectedRegionIncident('');
+                        setSelectedProduitIncident('');
+                        setSearchPaysIncident('');
+                        setSelectedIncidentTypesIncident([]);
+                      }} 
+                      className="flex-1 bg-gray-200 text-gray-700 py-3 sm:py-4 rounded-lg hover:bg-gray-300 transition-colors font-bold text-sm sm:text-base"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL DE CONFIRMATION DE SUPPRESSION */}
+        {deleteConfirm && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full mx-4">
+              <div className="p-4 sm:p-6 border-b border-gray-200">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900">Confirmer la suppression</h2>
+              </div>
+              
+              <div className="p-4 sm:p-6">
+                <p className="text-gray-700 mb-4 sm:mb-6 text-sm sm:text-base">
+                  Êtes-vous sûr de vouloir supprimer cet incident ? Cette action est irréversible.
+                </p>
+                
+                <div className="flex flex-col sm:flex-row gap-3">
                   <button 
-                    type="submit"
-                    className="flex-1 bg-orange-600 text-white py-3 sm:py-4 rounded-lg hover:bg-orange-700 transition-colors font-bold text-sm sm:text-base"
+                    onClick={() => deleteIncident(deleteConfirm)}
+                    className="flex-1 bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm sm:text-base"
                   >
-                    {loading ? 'Enregistrement...' : 'Enregistrer l\'Incident'}
+                    {loading ? 'Suppression...' : 'Supprimer'}
                   </button>
                   <button 
-                    type="button"
-                    onClick={() => {
-                      setShowNewIncident(false);
-                      setSelectedRegionIncident('');
-                      setSelectedProduitIncident('');
-                      setSearchPaysIncident('');
-                    }} 
-                    className="flex-1 bg-gray-200 text-gray-700 py-3 sm:py-4 rounded-lg hover:bg-gray-300 transition-colors font-bold text-sm sm:text-base"
+                    onClick={() => setDeleteConfirm(null)}
+                    className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition-colors font-semibold text-sm sm:text-base"
                   >
                     Annuler
                   </button>
                 </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL DE CONFIRMATION DE SUPPRESSION */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full mx-4">
-            <div className="p-4 sm:p-6 border-b border-gray-200">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900">Confirmer la suppression</h2>
-            </div>
-            
-            <div className="p-4 sm:p-6">
-              <p className="text-gray-700 mb-4 sm:mb-6 text-sm sm:text-base">
-                Êtes-vous sûr de vouloir supprimer cet incident ? Cette action est irréversible.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button 
-                  onClick={() => deleteIncident(deleteConfirm)}
-                  className="flex-1 bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm sm:text-base"
-                >
-                  {loading ? 'Suppression...' : 'Supprimer'}
-                </button>
-                <button 
-                  onClick={() => setDeleteConfirm(null)}
-                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition-colors font-semibold text-sm sm:text-base"
-                >
-                  Annuler
-                </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* MODAL DE CONFIRMATION DE SUPPRESSION RÉCLAMATION */}
-      {deleteReclamationConfirm && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full mx-4">
-            <div className="p-4 sm:p-6 border-b border-gray-200">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900">Confirmer la suppression</h2>
-            </div>
-            
-            <div className="p-4 sm:p-6">
-              <p className="text-gray-700 mb-4 text-sm sm:text-base">
-                Êtes-vous sûr de vouloir supprimer la réclamation <strong>{deleteReclamationConfirm.readable_id}</strong> ?
-              </p>
-              <p className="text-sm text-red-600 mb-4 sm:mb-6">
-                ⚠️ Cette action est irréversible et supprimera définitivement toutes les données de cette réclamation.
-              </p>
+        {/* MODAL DE CONFIRMATION DE SUPPRESSION RÉCLAMATION */}
+        {deleteReclamationConfirm && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full mx-4">
+              <div className="p-4 sm:p-6 border-b border-gray-200">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900">Confirmer la suppression</h2>
+              </div>
               
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button 
-                  onClick={() => deleteReclamation(deleteReclamationConfirm.id)}
-                  className="flex-1 bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm sm:text-base"
-                >
-                  {loading ? 'Suppression...' : 'Supprimer'}
-                </button>
-                <button 
-                  onClick={() => setDeleteReclamationConfirm(null)}
-                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition-colors font-semibold text-sm sm:text-base"
-                >
-                  Annuler
-                </button>
+              <div className="p-4 sm:p-6">
+                <p className="text-gray-700 mb-4 text-sm sm:text-base">
+                  Êtes-vous sûr de vouloir supprimer la réclamation <strong>{deleteReclamationConfirm.readable_id}</strong> ?
+                </p>
+                <p className="text-sm text-red-600 mb-4 sm:mb-6">
+                  ⚠️ Cette action est irréversible et supprimera définitivement toutes les données de cette réclamation.
+                </p>
+                
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button 
+                    onClick={() => deleteReclamation(deleteReclamationConfirm.id)}
+                    className="flex-1 bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm sm:text-base"
+                  >
+                    {loading ? 'Suppression...' : 'Supprimer'}
+                  </button>
+                  <button 
+                    onClick={() => setDeleteReclamationConfirm(null)}
+                    className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition-colors font-semibold text-sm sm:text-base"
+                  >
+                    Annuler
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
+        )}
+      </div>
+    );
+  }
