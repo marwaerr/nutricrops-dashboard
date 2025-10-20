@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, CheckCircle, Clock, FileText, Ship, Package, Users, Calendar, Mail, Filter, Search, Plus, Download, TrendingUp, TrendingDown, BarChart3, PieChart, X, MapPin, Edit, Save, Trash2 } from 'lucide-react';
 import { supabase } from './supabaseClient';
+import GeographicView from '../GeographicView';
 
 // Composant pour la sélection multiple des types d'incident
 const MultipleIncidentTypesSelector = ({ selectedTypes, onTypesChange, label, required = false }) => {
@@ -99,6 +100,7 @@ export default function NutricropsQualityExcellence() {
   const [editingFinances, setEditingFinances] = useState(null);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [evolutionData, setEvolutionData] = useState([]);
+  
 
   // États pour les filtres incidents
   const [filterIncidentStatus, setFilterIncidentStatus] = useState('all');
@@ -1165,23 +1167,56 @@ export default function NutricropsQualityExcellence() {
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
             {/* Sélecteur d'année */}
-            <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard Quality Excellence</h2>
-                <div className="flex items-center gap-4">
-                  <label className="text-sm font-semibold text-gray-700">Année:</label>
-                  <select 
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                    className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm sm:text-base"
-                  >
-                    {[2021, 2022, 2023, 2024, 2025].map(year => (
-                      <option key={year} value={year}>{year}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
+            {/* Sélecteur d'année et vue */}
+<div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard Quality Excellence</h2>
+    <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex items-center gap-4">
+        <label className="text-sm font-semibold text-gray-700">Année:</label>
+        <select 
+          value={selectedYear}
+          onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+          className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm sm:text-base"
+        >
+          {[2021, 2022, 2023, 2024, 2025].map(year => (
+            <option key={year} value={year}>{year}</option>
+          ))}
+        </select>
+      </div>
+      <div className="flex gap-2">
+        <button
+          onClick={() => setDashboardView('overview')}
+          className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+            dashboardView === 'overview'
+              ? 'bg-green-600 text-white shadow-lg'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          📊 Vue d'ensemble
+        </button>
+        <button
+          onClick={() => setDashboardView('geographic')}
+          className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+            dashboardView === 'geographic'
+              ? 'bg-blue-600 text-white shadow-lg'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          🌍 Vue géographique
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{/* Vue Géographique */}
+{dashboardView === 'geographic' && (
+  <GeographicView 
+    reclamations={reclamations} 
+    selectedYear={selectedYear} 
+  />
+)}
 
             {/* Vue Overview */}
             {dashboardView === 'overview' && (
