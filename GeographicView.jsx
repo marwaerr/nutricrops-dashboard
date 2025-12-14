@@ -409,21 +409,21 @@ const GeographicView = ({ reclamations, selectedYear, selectedTypes = [] }) => {
         </div>
         
         <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-4 sm:p-6 rounded-xl shadow-lg text-white">
-  <div className="flex items-center justify-between">
-    <div>
-      <p className="text-orange-100 text-sm font-medium">Type Dominant</p>
-      <p className="text-lg sm:text-xl font-bold mt-2 truncate">
-        {getTypeLabel(kpis.dominantTypeGlobal)}
-      </p>
-      <p className="text-sm text-orange-100 mt-1">
-        {kpis.typeDistribution[kpis.dominantTypeGlobal]} réclamations
-      </p>
-    </div>
-    {React.createElement(getTypeIcon(kpis.dominantTypeGlobal), { 
-      className: "w-8 h-8 sm:w-10 sm:h-10 text-orange-200" 
-    })}
-  </div>
-</div>
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-orange-100 text-sm font-medium">Type Dominant</p>
+              <p className="text-lg sm:text-xl font-bold mt-2 whitespace-normal break-words">
+                {getTypeLabel(kpis.dominantTypeGlobal)}
+              </p>
+              <p className="text-sm text-orange-100 mt-1">
+                {kpis.typeDistribution[kpis.dominantTypeGlobal]} réclamations
+              </p>
+            </div>
+            {React.createElement(getTypeIcon(kpis.dominantTypeGlobal), { 
+              className: "w-8 h-8 sm:w-10 sm:h-10 text-orange-200 flex-shrink-0 ml-2" 
+            })}
+          </div>
+        </div>
         
         <div className="bg-gradient-to-br from-red-500 to-red-600 p-4 sm:p-6 rounded-xl shadow-lg text-white">
           <div className="flex items-center justify-between">
@@ -440,16 +440,16 @@ const GeographicView = ({ reclamations, selectedYear, selectedTypes = [] }) => {
         
         <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-4 sm:p-6 rounded-xl shadow-lg text-white">
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-purple-100 text-sm font-medium">Pays Plus Touché</p>
-              <p className="text-lg sm:text-xl font-bold mt-2 truncate">
+              <p className="text-lg sm:text-xl font-bold mt-2 whitespace-normal break-words">
                 {kpis.mostAffectedCountry || 'Aucun'}
               </p>
               <p className="text-sm text-purple-100 mt-1">
                 {kpis.maxClaims} réclamation{kpis.maxClaims > 1 ? 's' : ''}
               </p>
             </div>
-            <AlertCircle className="w-8 h-8 sm:w-10 sm:h-10 text-purple-200" />
+            <AlertCircle className="w-8 h-8 sm:w-10 sm:h-10 text-purple-200 flex-shrink-0 ml-2" />
           </div>
         </div>
       </div>
