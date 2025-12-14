@@ -1,5 +1,5 @@
 // components/GeographicView.jsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -409,21 +409,21 @@ const GeographicView = ({ reclamations, selectedYear, selectedTypes = [] }) => {
         </div>
         
         <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-4 sm:p-6 rounded-xl shadow-lg text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-orange-100 text-sm font-medium">Type Dominant</p>
-              <p className="text-lg sm:text-xl font-bold mt-2 truncate">
-                {getTypeLabel(kpis.dominantTypeGlobal)}
-              </p>
-              <p className="text-sm text-orange-100 mt-1">
-                {kpis.typeDistribution[kpis.dominantTypeGlobal]} réclamations
-              </p>
-            </div>
-            {React.createElement(getTypeIcon(kpis.dominantTypeGlobal), { 
-              className: "w-8 h-8 sm:w-10 sm:h-10 text-orange-100" 
-            })}
-          </div>
-        </div>
+  <div className="flex items-center justify-between">
+    <div>
+      <p className="text-orange-100 text-sm font-medium">Type Dominant</p>
+      <p className="text-lg sm:text-xl font-bold mt-2 truncate">
+        {getTypeLabel(kpis.dominantTypeGlobal)}
+      </p>
+      <p className="text-sm text-orange-100 mt-1">
+        {kpis.typeDistribution[kpis.dominantTypeGlobal]} réclamations
+      </p>
+    </div>
+    {React.createElement(getTypeIcon(kpis.dominantTypeGlobal), { 
+      className: "w-8 h-8 sm:w-10 sm:h-10 text-orange-200" 
+    })}
+  </div>
+</div>
         
         <div className="bg-gradient-to-br from-red-500 to-red-600 p-4 sm:p-6 rounded-xl shadow-lg text-white">
           <div className="flex items-center justify-between">
