@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, Clock, FileText, Ship, Package, Users, Calendar, Mail, Filter, Search, Plus, Download, TrendingUp, TrendingDown, BarChart3, PieChart, X, MapPin, Edit, Save, Trash2 } from 'lucide-react';
+import { CheckCircle, Clock, FileText, Ship, Package, Users, Calendar, Mail, Filter, Search, Plus, Download, TrendingUp, TrendingDown, BarChart3, PieChart, X, MapPin, Edit, Save, Trash2, Globe } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import GeographicView from '../GeographicView';
 
+
 // Composant pour la sélection multiple des types d'incident
-const MultipleIncidentTypesSelector = ({ selectedTypes, onTypesChange, label, required = false }) => {
+const MultipleIncidentTypesSelector = ({ 
+  selectedTypes, 
+  onTypesChange, 
+  label, 
+  required = false,
+  disabled = false 
+}) => {
   const incidentTypesOptions = [
     'Prise en masse',
     'Poussière',
@@ -22,6 +29,7 @@ const MultipleIncidentTypesSelector = ({ selectedTypes, onTypesChange, label, re
   ];
 
   const toggleType = (type) => {
+    if (disabled) return;
     const newTypes = selectedTypes.includes(type)
       ? selectedTypes.filter(t => t !== type)
       : [...selectedTypes, type];
@@ -30,54 +38,76 @@ const MultipleIncidentTypesSelector = ({ selectedTypes, onTypesChange, label, re
 
   return (
     <div>
-      <label className="block text-sm font-semibold text-gray-700 mb-2">
-        {label} {required && '*'}
+      <label className={`block text-sm font-semibold mb-2 ${
+        disabled ? 'text-gray-400' : 'text-gray-700'
+      }`}>
+        {label} {required && !disabled && '*'}
       </label>
       
-      {/* Affichage des types sélectionnés */}
-      {selectedTypes.length > 0 && (
-        <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-          <p className="text-sm font-medium text-green-800 mb-2">Types sélectionnés:</p>
-          <div className="flex flex-wrap gap-2">
-            {selectedTypes.map(type => (
-              <span 
+      {disabled ? (
+        <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+          <p className="text-sm text-gray-500">
+            Les types d'incident ne sont disponibles que pour les réclamations de type "Qualité"
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Affichage des types sélectionnés */}
+          {selectedTypes.length > 0 && (
+            <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm font-medium text-green-800 mb-2">Types sélectionnés:</p>
+              <div className="flex flex-wrap gap-2">
+                {selectedTypes.map(type => (
+                  <span 
+                    key={type}
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium border border-green-200"
+                  >
+                    {type}
+                    <button
+                      type="button"
+                      onClick={() => toggleType(type)}
+                      className="text-green-600 hover:text-green-800 ml-1"
+                      disabled={disabled}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Liste des options */}
+          <div className={`border border-gray-300 rounded-lg max-h-48 overflow-y-auto ${
+            disabled ? 'bg-gray-50' : ''
+          }`}>
+            {incidentTypesOptions.map(type => (
+              <label 
                 key={type}
-                className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium border border-green-200"
+                className={`flex items-center gap-3 p-3 border-b border-gray-100 last:border-b-0 ${
+                  disabled ? 'text-gray-400 cursor-not-allowed' : 'hover:bg-gray-50 cursor-pointer'
+                }`}
               >
-                {type}
-                <button
-                  type="button"
-                  onClick={() => toggleType(type)}
-                  className="text-green-600 hover:text-green-800 ml-1"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
+                <input
+                  type="checkbox"
+                  checked={selectedTypes.includes(type)}
+                  onChange={() => !disabled && toggleType(type)}
+                  disabled={disabled}
+                  className={`w-4 h-4 border-gray-300 rounded focus:ring-green-500 ${
+                    disabled ? 'text-gray-300 cursor-not-allowed' : 'text-green-600'
+                  }`}
+                />
+                <span className={`text-sm ${
+                  disabled ? 'text-gray-400' : 'text-gray-700'
+                }`}>{type}</span>
+              </label>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* Liste des options */}
-      <div className="border border-gray-300 rounded-lg max-h-48 overflow-y-auto">
-        {incidentTypesOptions.map(type => (
-          <label 
-            key={type}
-            className="flex items-center gap-3 p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 cursor-pointer"
-          >
-            <input
-              type="checkbox"
-              checked={selectedTypes.includes(type)}
-              onChange={() => toggleType(type)}
-              className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
-            />
-            <span className="text-sm text-gray-700">{type}</span>
-          </label>
-        ))}
-      </div>
-      
-      {selectedTypes.length === 0 && (
-        <p className="text-xs text-gray-500 mt-1">Aucun type sélectionné. Cliquez pour choisir.</p>
+          
+          {selectedTypes.length === 0 && !disabled && (
+            <p className="text-xs text-gray-500 mt-1">Aucun type sélectionné. Cliquez pour choisir.</p>
+          )}
+        </>
       )}
     </div>
   );
@@ -212,6 +242,256 @@ const FollowUpHistory = ({ reclamationId }) => {
   );
 };
 
+// Composant pour la carte smart avec couleurs par type
+const SmartReclamationCard = ({ reclamation, setSelectedReclamation, setDeleteReclamationConfirm }) => {
+  const getTypeColor = (type) => {
+    switch(type) {
+      case 'qualite': return 'border-green-500 bg-green-50 hover:bg-green-100';
+      case 'quantite': return 'border-blue-500 bg-blue-50 hover:bg-blue-100';
+      case 'logistique': return 'border-orange-500 bg-orange-50 hover:bg-orange-100';
+      case 'documentation': return 'border-purple-500 bg-purple-50 hover:bg-purple-100';
+      default: return 'border-gray-500 bg-gray-50 hover:bg-gray-100';
+    }
+  };
+
+  const getStatutBadge = (statut) => {
+    const styles = {
+      nouveau: 'bg-blue-100 text-blue-800 border-blue-200',
+      en_cours: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      cloture: 'bg-green-100 text-green-800 border-green-200'
+    };
+    const labels = { 
+      nouveau: 'Nouveau', 
+      en_cours: 'En cours', 
+      cloture: 'Clôturé' 
+    };
+    return (
+      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${styles[statut] || 'bg-gray-100 text-gray-800 border-gray-200'}`}>
+        {labels[statut] || statut}
+      </span>
+    );
+  };
+
+  const getReclamationTypeBadge = (type) => {
+    const styles = {
+      quantite: 'bg-blue-100 text-blue-800 border-blue-200',
+      qualite: 'bg-green-100 text-green-800 border-green-200',
+      logistique: 'bg-orange-100 text-orange-800 border-orange-200',
+      documentation: 'bg-purple-100 text-purple-800 border-purple-200'
+    };
+    const labels = {
+      quantite: 'Quantité',
+      qualite: 'Qualité',
+      logistique: 'Logistique',
+      documentation: 'Documentation'
+    };
+    return (
+      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${styles[type] || 'bg-gray-100 text-gray-800 border-gray-200'}`}>
+        {labels[type] || type}
+      </span>
+    );
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('fr-MA', {
+      style: 'currency',
+      currency: 'MAD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount || 0);
+  };
+
+  return (
+    <div className={`bg-white rounded-xl shadow-lg border-l-4 border-r border-t border-b border-gray-200 ${getTypeColor(reclamation.type_reclamation)} transition-all duration-300 hover:shadow-xl`}>
+      <div className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3">
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 truncate">
+                {reclamation.readable_id || `REC-${reclamation.id.substring(0, 8)}`}
+              </h3>
+              {getStatutBadge(reclamation.statut)}
+              {reclamation.type_reclamation && getReclamationTypeBadge(reclamation.type_reclamation)}
+              {reclamation.region && (
+                <span className="text-sm px-2 sm:px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
+                  {reclamation.region}
+                </span>
+              )}
+              {reclamation.pays && reclamation.pays !== 'À définir' && (
+                <div className="flex items-center gap-1 text-sm text-gray-600">
+                  <Globe className="w-3 h-3 text-gray-500" />
+                  <span className="font-medium">{reclamation.pays}</span>
+                </div>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 text-sm mb-3">
+              <div>
+                <span className="text-gray-500">Client:</span>
+                <p className="font-semibold text-gray-900 truncate">{reclamation.client}</p>
+              </div>
+              <div>
+                <span className="text-gray-500">Navire:</span>
+                <p className="font-semibold text-gray-900 truncate">{reclamation.navire}</p>
+              </div>
+              <div>
+                <span className="text-gray-500">Date réception:</span>
+                <p className="font-semibold text-gray-900">{new Date(reclamation.date_reception).toLocaleDateString('fr-FR')}</p>
+              </div>
+            </div>
+
+            {reclamation.nouveau_produit && (
+              <div className="mb-3">
+                <span className="px-2 sm:px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-bold border border-purple-300">
+                  ⭐ NOUVEAU PRODUIT
+                </span>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-sm mb-3">
+              <div className="flex items-center gap-1">
+                <Package className="w-4 h-4 text-gray-500" />
+                <span className="text-gray-600">
+                  {reclamation.qualite}
+                  {reclamation.sous_produit && (
+                    <span className="text-gray-400"> / {reclamation.sous_produit}</span>
+                  )}
+                </span>
+              </div>
+              {reclamation.quantite > 0 && (
+                <div>
+                  <span className="text-gray-600">Quantité: </span>
+                  <span className="font-semibold text-gray-900">{reclamation.quantite?.toLocaleString()} MT</span>
+                </div>
+              )}
+              {reclamation.montant_demande > 0 && (
+                <div>
+                  <span className="text-gray-600">Demandé: </span>
+                  <span className="font-bold text-red-600">{formatCurrency(reclamation.montant_demande)}</span>
+                </div>
+              )}
+            </div>
+
+            {reclamation.type_incident && (
+              <div className="mb-3">
+                <span className="text-gray-600 text-sm">Types d'incident: </span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {reclamation.type_incident.split(', ').map((type, index) => (
+                    <span 
+                      key={index}
+                      className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium"
+                    >
+                      {type}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded">
+              <p className="text-sm font-medium text-gray-900 line-clamp-2">{reclamation.probleme}</p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 w-full sm:w-auto">
+            <button 
+              onClick={() => setSelectedReclamation(reclamation)}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm w-full sm:w-auto"
+            >
+              Voir Détails
+            </button>
+            <button 
+              onClick={() => setDeleteReclamationConfirm(reclamation)}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm flex items-center gap-2 justify-center w-full sm:w-auto"
+            >
+              <Trash2 className="w-4 h-4" />
+              Supprimer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Composant pour la sélection multiple de types de réclamation pour la carte géographique
+const GeographicTypeSelector = ({ selectedTypes, onTypesChange }) => {
+  const reclamationTypes = [
+    { id: 'quantite', label: 'Quantité', color: 'bg-blue-500' },
+    { id: 'qualite', label: 'Qualité', color: 'bg-green-500' },
+    { id: 'logistique', label: 'Logistique', color: 'bg-orange-500' },
+    { id: 'documentation', label: 'Documentation', color: 'bg-purple-500' }
+  ];
+
+  const toggleType = (typeId) => {
+    if (selectedTypes.includes(typeId)) {
+      onTypesChange(selectedTypes.filter(id => id !== typeId));
+    } else {
+      onTypesChange([...selectedTypes, typeId]);
+    }
+  };
+
+  const selectAllTypes = () => {
+    onTypesChange(['quantite', 'qualite', 'logistique', 'documentation']);
+  };
+
+  const deselectAllTypes = () => {
+    onTypesChange([]);
+  };
+
+  return (
+    <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3">
+        <div>
+          <h4 className="font-semibold text-gray-900 mb-1">Filtrer par type de réclamation:</h4>
+          <p className="text-sm text-gray-600">
+            {selectedTypes.length === 0 
+              ? 'Tous les types sélectionnés' 
+              : `${selectedTypes.length} type(s) sélectionné(s)`}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button 
+            onClick={selectAllTypes}
+            className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200"
+          >
+            Tout sélectionner
+          </button>
+          <button 
+            onClick={deselectAllTypes}
+            className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200"
+          >
+            Tout désélectionner
+          </button>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {reclamationTypes.map(type => (
+          <label 
+            key={type.id}
+            className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-all ${
+              selectedTypes.includes(type.id)
+                ? 'bg-white border-2 border-blue-300 shadow-sm'
+                : 'bg-gray-100 hover:bg-gray-200 border border-gray-300'
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={selectedTypes.includes(type.id)}
+              onChange={() => toggleType(type.id)}
+              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <div className="flex items-center gap-2">
+              <div className={`w-3 h-3 rounded-full ${type.color}`}></div>
+              <span className="text-sm font-medium text-gray-700">{type.label}</span>
+            </div>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export default function NutricropsQualityExcellence() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedReclamation, setSelectedReclamation] = useState(null);
@@ -226,6 +506,10 @@ export default function NutricropsQualityExcellence() {
   const [editingFinances, setEditingFinances] = useState(null);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [evolutionData, setEvolutionData] = useState([]);
+  const [selectedStartYear, setSelectedStartYear] = useState(2018);
+  const [selectedEndYear, setSelectedEndYear] = useState(2026);
+  const [loadingEvolution, setLoadingEvolution] = useState(false);
+  const [selectedReclamationTypes, setSelectedReclamationTypes] = useState([]);
   
   // États pour les données
   const [reclamations, setReclamations] = useState([]);
@@ -240,6 +524,7 @@ export default function NutricropsQualityExcellence() {
   const [produitStats, setProduitStats] = useState([]);
   const [regionStats, setRegionStats] = useState([]);
   const [incidentTypes, setIncidentTypes] = useState([]);
+  const [reclamationTypeStats, setReclamationTypeStats] = useState([]);
   const [topClients, setTopClients] = useState([]);
 
   // États pour les produits depuis la base de données
@@ -262,6 +547,15 @@ export default function NutricropsQualityExcellence() {
     type: 'information'
   });
 
+  // États pour les filtres additionnels
+  const [filterReclamationType, setFilterReclamationType] = useState('all');
+  const [filterRegion, setFilterRegion] = useState('all');
+
+  // Nouveaux états pour la carte géographique avec sélection multiple
+  const [selectedGeographicTypes, setSelectedGeographicTypes] = useState(['quantite', 'qualite', 'logistique', 'documentation']);
+  const [geographicDataByType, setGeographicDataByType] = useState([]);
+  const [loadingGeographicData, setLoadingGeographicData] = useState(false);
+
   // Données pour les régions et pays - VERSION COMPLÈTE
   const [regionsData, setRegionsData] = useState({
     Europe: [
@@ -277,7 +571,7 @@ export default function NutricropsQualityExcellence() {
       'Israël', 'Turquie', 'Singapour', 'Corée du Nord', 'Birmanie', 'Cambodge', 'Laos'
     ],
     Amérique: [
-      'États-Unis', 'Canada', 'Brésil', 'Mexique', 'Argentine', 'Chili', 'Colombie', 
+      'États-Unis', 'Canada', 'Brésil', 'Mexico', 'Argentine', 'Chili', 'Colombie', 
       'Pérou', 'Uruguay', 'Équateur', 'Venezuela', 'El Salvador', 'Guatemala', 'Costa Rica',
       'Panama', 'République Dominicaine', 'Cuba', 'Honduras', 'Nicaragua', 'Paraguay', 'Bolivie'
     ],
@@ -298,11 +592,31 @@ export default function NutricropsQualityExcellence() {
   const [searchPays, setSearchPays] = useState('');
   const [showPaysSuggestions, setShowPaysSuggestions] = useState(false);
 
+  // Types de réclamation disponibles
+  const reclamationTypes = [
+    { id: 'quantite', label: 'Quantité', color: 'bg-blue-500' },
+    { id: 'qualite', label: 'Qualité', color: 'bg-green-500' },
+    { id: 'logistique', label: 'Logistique', color: 'bg-orange-500' },
+    { id: 'documentation', label: 'Documentation', color: 'bg-purple-500' }
+  ];
+
   // Charger toutes les données depuis Supabase
   useEffect(() => {
     loadAllData();
     loadProduitsData();
+    loadEvolutionData();
+    loadGeographicDataByType();
   }, [selectedYear]);
+
+  // Charger les données d'évolution quand la période change
+  useEffect(() => {
+    loadEvolutionData();
+  }, [selectedStartYear, selectedEndYear, selectedReclamationTypes]);
+
+  // Charger les données géographiques quand les types sélectionnés changent
+  useEffect(() => {
+    loadGeographicDataByType();
+  }, [selectedGeographicTypes, selectedYear]);
 
   // S'assurer que produitsData a toujours une structure valide
   useEffect(() => {
@@ -354,6 +668,57 @@ export default function NutricropsQualityExcellence() {
     setLoadingProduits(false);
   };
 
+  // Charger les données géographiques par type avec sélection multiple
+  const loadGeographicDataByType = async () => {
+    setLoadingGeographicData(true);
+    try {
+      let query = supabase
+        .from('reclamations')
+        .select('region, pays, type_reclamation, date_reception')
+        .gte('date_reception', `${selectedYear}-01-01`)
+        .lte('date_reception', `${selectedYear}-12-31`);
+
+      // Si des types sont sélectionnés, filtrer par ces types
+      if (selectedGeographicTypes.length > 0 && !selectedGeographicTypes.includes('all')) {
+        query = query.in('type_reclamation', selectedGeographicTypes);
+      }
+
+      const { data, error } = await query;
+
+      if (!error && data) {
+        // Grouper les données par région et pays, avec répartition par type
+        const groupedData = data.reduce((acc, item) => {
+          const key = `${item.region}-${item.pays}`;
+          if (!acc[key]) {
+            acc[key] = {
+              region: item.region,
+              pays: item.pays,
+              total: 0,
+              types: {
+                quantite: 0,
+                qualite: 0,
+                logistique: 0,
+                documentation: 0,
+                non_specifie: 0
+              }
+            };
+          }
+          
+          acc[key].total++;
+          const type = item.type_reclamation || 'non_specifie';
+          acc[key].types[type] = (acc[key].types[type] || 0) + 1;
+          
+          return acc;
+        }, {});
+
+        setGeographicDataByType(Object.values(groupedData));
+      }
+    } catch (error) {
+      console.error('Error loading geographic data by type:', error);
+    }
+    setLoadingGeographicData(false);
+  };
+
   const loadAllData = async () => {
     setLoading(true);
     try {
@@ -364,8 +729,8 @@ export default function NutricropsQualityExcellence() {
       await loadProduitStats();
       await loadRegionStats();
       await loadIncidentTypes();
+      await loadReclamationTypeStats();
       await loadTopClients();
-      await loadEvolutionData();
     } catch (error) {
       console.error('Error loading all data:', error);
     }
@@ -442,28 +807,122 @@ export default function NutricropsQualityExcellence() {
     }
   };
 
-  const loadEvolutionData = async () => {
+  const loadReclamationTypeStats = async () => {
     try {
-      const currentYear = new Date().getFullYear();
-      const years = [currentYear - 4, currentYear - 3, currentYear - 2, currentYear - 1, currentYear];
+      const { data, error } = await supabase
+        .from('reclamations')
+        .select('type_reclamation, date_reception')
+        .gte('date_reception', `${selectedYear}-01-01`)
+        .lte('date_reception', `${selectedYear}-12-31`);
+
+      if (!error && data) {
+        const typeCounts = data.reduce((acc, item) => {
+          const type = item.type_reclamation || 'non_specifie';
+          acc[type] = (acc[type] || 0) + 1;
+          return acc;
+        }, {});
+
+        const stats = Object.entries(typeCounts).map(([type, count]) => ({
+          type,
+          count,
+          color: getReclamationTypeColor(type)
+        }));
+
+        setReclamationTypeStats(stats);
+      }
+    } catch (error) {
+      console.error('Error loading reclamation type stats:', error);
+    }
+  };
+
+  const loadEvolutionData = async () => {
+    setLoadingEvolution(true);
+    try {
+      // Utiliser les années sélectionnées
+      const startYear = Math.min(selectedStartYear, selectedEndYear);
+      const endYear = Math.max(selectedStartYear, selectedEndYear);
+      
+      // S'assurer que l'intervalle est valide
+      if (startYear > endYear) {
+        console.error("L'année de début ne peut pas être supérieure à l'année de fin");
+        return;
+      }
+      
+      // Générer un tableau d'années entre startYear et endYear
+      const years = Array.from(
+        { length: endYear - startYear + 1 }, 
+        (_, i) => startYear + i
+      );
+      
+      console.log("Chargement des données d'évolution pour les années:", years);
+      
+      // Si aucun type n'est sélectionné, on prend tous les types
+      const typesToLoad = selectedReclamationTypes.length > 0 ? selectedReclamationTypes : ['quantite', 'qualite', 'logistique', 'documentation'];
       
       const evolutionPromises = years.map(async (year) => {
-        const { data: reclamationsData } = await supabase
-          .from('reclamations')
-          .select('id, date_reception')
-          .gte('date_reception', `${year}-01-01`)
-          .lte('date_reception', `${year}-12-31`);
+        try {
+          let query = supabase
+            .from('reclamations')
+            .select('id, date_reception, type_reclamation')
+            .gte('date_reception', `${year}-01-01`)
+            .lte('date_reception', `${year}-12-31`);
 
-        return {
-          year,
-          reclamations: reclamationsData?.length || 0
-        };
+          // Filtrer par types sélectionnés si nécessaire
+          if (selectedReclamationTypes.length > 0) {
+            query = query.in('type_reclamation', selectedReclamationTypes);
+          }
+
+          const { data: reclamationsData, error } = await query;
+
+          if (error) {
+            console.error(`Erreur pour l'année ${year}:`, error);
+            return {
+              year,
+              total: 0,
+              types: {},
+              error: true
+            };
+          }
+
+          // Calculer la répartition par type
+          const typeDistribution = {};
+          let total = 0;
+          
+          reclamationsData?.forEach(rec => {
+            const type = rec.type_reclamation || 'non_specifie';
+            if (typesToLoad.includes(type)) {
+              typeDistribution[type] = (typeDistribution[type] || 0) + 1;
+              total++;
+            }
+          });
+
+          return {
+            year,
+            total,
+            types: typeDistribution
+          };
+        } catch (error) {
+          console.error(`Erreur dans la promesse pour ${year}:`, error);
+          return {
+            year,
+            total: 0,
+            types: {},
+            error: true
+          };
+        }
       });
 
       const evolutionResults = await Promise.all(evolutionPromises);
-      setEvolutionData(evolutionResults);
+      
+      // Filtrer les résultats qui ont des erreurs
+      const validResults = evolutionResults.filter(item => !item.error);
+      
+      console.log("Données d'évolution chargées:", validResults);
+      setEvolutionData(validResults);
     } catch (error) {
       console.error('Error loading evolution data:', error);
+    } finally {
+      setLoadingEvolution(false);
     }
   };
 
@@ -530,14 +989,23 @@ export default function NutricropsQualityExcellence() {
     try {
       const { data, error } = await supabase
         .from('reclamations')
-        .select('type_incident, date_reception')
+        .select('type_incident, date_reception, type_reclamation')
         .gte('date_reception', `${selectedYear}-01-01`)
         .lte('date_reception', `${selectedYear}-12-31`);
 
       if (!error && data) {
-        const typeCounts = data.reduce((acc, item) => {
+        // Filtrer uniquement les réclamations de type "qualite"
+        const qualityReclamations = data.filter(rec => rec.type_reclamation === 'qualite');
+        
+        const typeCounts = qualityReclamations.reduce((acc, item) => {
           if (item.type_incident) {
-            acc[item.type_incident] = (acc[item.type_incident] || 0) + 1;
+            // Les types d'incident sont stockés comme une string séparée par des virgules
+            const types = item.type_incident.split(', ');
+            types.forEach(type => {
+              if (type.trim()) {
+                acc[type.trim()] = (acc[type.trim()] || 0) + 1;
+              }
+            });
           }
           return acc;
         }, {});
@@ -589,6 +1057,30 @@ export default function NutricropsQualityExcellence() {
       'bg-red-600', 'bg-orange-600', 'bg-purple-600', 'bg-pink-600'
     ];
     return colors[Math.floor(Math.random() * colors.length)];
+  };
+
+  // Fonction pour obtenir la couleur d'un type de réclamation
+  const getReclamationTypeColor = (type) => {
+    const colors = {
+      quantite: 'bg-blue-600',
+      qualite: 'bg-green-600',
+      logistique: 'bg-orange-600',
+      documentation: 'bg-purple-600',
+      non_specifie: 'bg-gray-600'
+    };
+    return colors[type] || 'bg-gray-600';
+  };
+
+  // Fonction pour obtenir la couleur d'un type de réclamation (version hex)
+  const getReclamationTypeColorHex = (type) => {
+    const colors = {
+      quantite: '#3b82f6', // blue-500
+      qualite: '#10b981', // green-500
+      logistique: '#f97316', // orange-500
+      documentation: '#8b5cf6', // purple-500
+      non_specifie: '#6b7280' // gray-500
+    };
+    return colors[type] || '#6b7280';
   };
 
   // Fonction pour générer un ID lisible
@@ -659,9 +1151,9 @@ export default function NutricropsQualityExcellence() {
     setLoading(true);
     
     try {
-      // Vérifier qu'au moins un type est sélectionné
-      if (selectedIncidentTypes.length === 0) {
-        alert('Veuillez sélectionner au moins un type d\'incident');
+      // Vérifier les types d'incident seulement pour les réclamations de qualité
+      if (reclamationType === 'qualite' && selectedIncidentTypes.length === 0) {
+        alert('Veuillez sélectionner au moins un type d\'incident pour les réclamations de qualité');
         setLoading(false);
         return;
       }
@@ -713,6 +1205,9 @@ export default function NutricropsQualityExcellence() {
         setSelectedIncidentTypes([]); // Réinitialiser les types sélectionnés
         setReclamationType('qualite'); // Réinitialiser le type de réclamation
         await loadDashboardStats();
+        await loadEvolutionData(); // Recharger les données d'évolution
+        await loadReclamationTypeStats(); // Recharger les stats par type
+        await loadGeographicDataByType(); // Recharger les données géographiques
         alert('Réclamation créée avec succès!');
       }
     } catch (error) {
@@ -797,6 +1292,9 @@ export default function NutricropsQualityExcellence() {
           setSelectedReclamation(null);
         }
         await loadDashboardStats();
+        await loadEvolutionData(); // Recharger les données d'évolution
+        await loadReclamationTypeStats(); // Recharger les stats par type
+        await loadGeographicDataByType(); // Recharger les données géographiques
         alert('Réclamation supprimée avec succès!');
       }
     } catch (error) {
@@ -837,6 +1335,9 @@ export default function NutricropsQualityExcellence() {
           });
         }
         await loadDashboardStats();
+        await loadEvolutionData(); // Recharger les données d'évolution
+        await loadReclamationTypeStats(); // Recharger les stats par type
+        await loadGeographicDataByType(); // Recharger les données géographiques
         alert('Réclamation clôturée avec succès!');
       }
     } catch (error) {
@@ -907,6 +1408,37 @@ export default function NutricropsQualityExcellence() {
     );
   };
 
+  // Fonction pour gérer la sélection/désélection des types de réclamation
+  const toggleReclamationType = (typeId) => {
+    if (selectedReclamationTypes.includes(typeId)) {
+      setSelectedReclamationTypes(selectedReclamationTypes.filter(id => id !== typeId));
+    } else {
+      setSelectedReclamationTypes([...selectedReclamationTypes, typeId]);
+    }
+  };
+
+  // Sélectionner tous les types
+  const selectAllTypes = () => {
+    setSelectedReclamationTypes(['quantite', 'qualite', 'logistique', 'documentation']);
+  };
+
+  // Désélectionner tous les types
+  const deselectAllTypes = () => {
+    setSelectedReclamationTypes([]);
+  };
+
+  // Fonction pour obtenir la couleur d'un type
+  const getTypeColor = (typeId) => {
+    const type = reclamationTypes.find(t => t.id === typeId);
+    return type ? type.color : 'bg-gray-500';
+  };
+
+  // Fonction pour obtenir le label d'un type
+  const getTypeLabel = (typeId) => {
+    const type = reclamationTypes.find(t => t.id === typeId);
+    return type ? type.label : 'Non spécifié';
+  };
+
   // Filtrage des réclamations
   let filteredReclamations = reclamations;
 
@@ -924,6 +1456,20 @@ export default function NutricropsQualityExcellence() {
       (r.client && r.client.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (r.navire && r.navire.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (r.readable_id && r.readable_id.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+  }
+
+  // Filtre par type de réclamation
+  if (filterReclamationType !== 'all') {
+    filteredReclamations = filteredReclamations.filter(
+      rec => rec.type_reclamation === filterReclamationType
+    );
+  }
+
+  // Filtre par région
+  if (filterRegion !== 'all') {
+    filteredReclamations = filteredReclamations.filter(
+      rec => rec.region === filterRegion
     );
   }
 
@@ -1025,7 +1571,7 @@ export default function NutricropsQualityExcellence() {
                       onChange={(e) => setSelectedYear(parseInt(e.target.value))}
                       className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm sm:text-base"
                     >
-                      {[2021, 2022, 2023, 2024, 2025].map(year => (
+                      {[2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026].map(year => (
                         <option key={year} value={year}>{year}</option>
                       ))}
                     </select>
@@ -1056,13 +1602,223 @@ export default function NutricropsQualityExcellence() {
               </div>
             </div>
 
-            {/* Vue Géographique */}
-            {dashboardView === 'geographic' && (
-              <GeographicView 
-                reclamations={reclamations} 
-                selectedYear={selectedYear} 
-              />
-            )}
+            
+{dashboardView === 'geographic' && (
+  <div className="space-y-6">
+    {/* 1. Filtre pour la carte - MAINTENANT EN HAUT */}
+    <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <h3 className="text-lg sm:text-xl font-bold text-gray-900">
+          Répartition Géographique des Réclamations {selectedYear}
+        </h3>
+        <div className="flex items-center gap-4">
+          <span className="text-sm font-semibold text-gray-700">
+            {selectedGeographicTypes.length === 4 ? 'Tous types' : `${selectedGeographicTypes.length} type(s) sélectionné(s)`}
+          </span>
+        </div>
+      </div>
+      
+      {/* Sélecteur de types multiple */}
+      <GeographicTypeSelector
+        selectedTypes={selectedGeographicTypes}
+        onTypesChange={setSelectedGeographicTypes}
+      />
+    </div>
+
+    {/* 2. Carte géographique en DEUXIÈME */}
+    <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+      <GeographicView 
+        reclamations={reclamations.filter(rec => {
+          // Si aucun type n'est sélectionné ou "all" est sélectionné, montrer toutes les réclamations
+          if (selectedGeographicTypes.length === 0 || selectedGeographicTypes.includes('all')) {
+            return true;
+          }
+          // Sinon, filtrer par les types sélectionnés
+          return selectedGeographicTypes.includes(rec.type_reclamation);
+        })} 
+        selectedYear={selectedYear}
+        selectedTypes={selectedGeographicTypes}
+      />
+    </div>
+
+    {/* 3. Statistiques par pays AVEC COULEURS PAR TYPE - EN DESSOUS DE LA CARTE */}
+    <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+      <h4 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+        <Globe className="w-5 h-5 text-blue-600" />
+        Statistiques par Pays
+      </h4>
+      
+      {loadingGeographicData ? (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+          <p className="text-gray-500 mt-3">Chargement des données géographiques...</p>
+        </div>
+      ) : (
+        <div>
+          {/* Statistiques par pays avec couleurs par type */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {geographicDataByType
+              .sort((a, b) => b.total - a.total) // Trier par nombre total décroissant
+              .map((item, index) => {
+                // Calculer le total pour les types sélectionnés
+                const totalToShow = selectedGeographicTypes.includes('all') || selectedGeographicTypes.length === 0
+                  ? item.total
+                  : selectedGeographicTypes.reduce((sum, type) => sum + (item.types[type] || 0), 0);
+                
+                // Si aucun type sélectionné, ne rien afficher
+                if (totalToShow === 0) return null;
+                
+                // Calculer les pourcentages pour chaque type sélectionné
+                const percentages = {};
+                const typesToShow = selectedGeographicTypes.includes('all') || selectedGeographicTypes.length === 0
+                  ? ['quantite', 'qualite', 'logistique', 'documentation']
+                  : selectedGeographicTypes;
+                
+                typesToShow.forEach(type => {
+                  percentages[type] = item.total > 0 ? ((item.types[type] || 0) / item.total) * 100 : 0;
+                });
+
+                return (
+                  <div 
+                    key={`${item.region}-${item.pays}`}
+                    className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 group relative"
+                  >
+                    {/* Info-bulle au hover */}
+                    <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+                      <div className="bg-gray-900 text-white p-3 rounded-lg shadow-xl min-w-[200px]">
+                        <div className="font-bold text-sm mb-2">{item.pays}</div>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-300">Total:</span>
+                            <span className="font-bold">{item.total}</span>
+                          </div>
+                          {typesToShow.map(type => {
+                            if (item.types[type] > 0) {
+                              const typeLabels = {
+                                quantite: 'Quantité',
+                                qualite: 'Qualité',
+                                logistique: 'Logistique',
+                                documentation: 'Documentation'
+                              };
+                              const typeColors = {
+                                quantite: 'bg-blue-500',
+                                qualite: 'bg-green-500',
+                                logistique: 'bg-orange-500',
+                                documentation: 'bg-purple-500'
+                              };
+                              return (
+                                <div key={type} className="flex justify-between items-center">
+                                  <div className="flex items-center gap-1">
+                                    <div className={`w-2 h-2 rounded ${typeColors[type]}`}></div>
+                                    <span className="text-gray-300">{typeLabels[type]}:</span>
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="font-bold">{item.types[type]}</span>
+                                    <span className="text-gray-400 ml-1">({percentages[type].toFixed(0)}%)</span>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Globe className="w-4 h-4 text-blue-600" />
+                          <span className="font-bold text-gray-900">{item.pays}</span>
+                        </div>
+                        <span className="text-sm text-gray-600">{item.region}</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xl sm:text-2xl font-bold text-green-600">
+                          {totalToShow}
+                        </div>
+                        <div className="text-xs text-gray-500">réclamation(s)</div>
+                      </div>
+                    </div>
+
+                    {/* Barre de progression avec segments colorés pour chaque type sélectionné */}
+                    {item.total > 0 && (
+                      <div className="w-full bg-gray-200 rounded-full h-2 mt-2 overflow-hidden">
+                        <div className="flex h-full">
+                          {typesToShow.map(type => {
+                            const percentage = percentages[type];
+                            const typeColors = {
+                              quantite: 'bg-blue-500',
+                              qualite: 'bg-green-500',
+                              logistique: 'bg-orange-500',
+                              documentation: 'bg-purple-500'
+                            };
+                            
+                            return percentage > 0 ? (
+                              <div 
+                                key={type}
+                                className={`${typeColors[type]} h-full transition-all duration-300 group-hover:opacity-90`}
+                                style={{ width: `${percentage}%` }}
+                                title={`${type}: ${item.types[type] || 0} (${percentage.toFixed(0)}%)`}
+                              ></div>
+                            ) : null;
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Légende des types avec couleurs */}
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {typesToShow.map(type => {
+                        if (item.types[type] > 0) {
+                          const typeColors = {
+                            quantite: 'bg-blue-100 text-blue-800',
+                            qualite: 'bg-green-100 text-green-800',
+                            logistique: 'bg-orange-100 text-orange-800',
+                            documentation: 'bg-purple-100 text-purple-800'
+                          };
+                          const typeLabels = {
+                            quantite: 'Q',
+                            qualite: 'Ql',
+                            logistique: 'L',
+                            documentation: 'D'
+                          };
+                          return (
+                            <span 
+                              key={type}
+                              className={`text-xs px-2 py-1 rounded ${typeColors[type]}`}
+                            >
+                              {typeLabels[type]}: {item.types[type]}
+                            </span>
+                          );
+                        }
+                        return null;
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+
+          {geographicDataByType.filter(item => {
+            const totalToShow = selectedGeographicTypes.includes('all') || selectedGeographicTypes.length === 0
+              ? item.total
+              : selectedGeographicTypes.reduce((sum, type) => sum + (item.types[type] || 0), 0);
+            return totalToShow > 0;
+          }).length === 0 && (
+            <div className="text-center py-8 bg-gray-50 rounded-lg">
+              <Globe className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+              <p className="text-gray-600 font-medium">Aucune donnée géographique</p>
+              <p className="text-gray-500 text-sm mt-1">
+                Aucune réclamation {selectedGeographicTypes.length > 0 && selectedGeographicTypes.length < 4 ? `des types sélectionnés` : ''} trouvée pour {selectedYear}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  </div>
+)}
 
             {/* Vue Overview */}
             {dashboardView === 'overview' && (
@@ -1208,27 +1964,156 @@ export default function NutricropsQualityExcellence() {
                   </div>
                 </div>
 
-                {/* Répartition par Type */}
+                {/* Répartition par Type de Réclamation */}
                 <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Répartition par Type d'Incident {selectedYear}</h3>
+                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <PieChart className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
+                    Répartition par Type de Réclamation {selectedYear}
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    {reclamationTypeStats.length > 0 ? (
+                      reclamationTypeStats.map(stat => {
+                        const percentage = dashboardStats.totalReclamations > 0 ? 
+                          ((stat.count / dashboardStats.totalReclamations) * 100).toFixed(0) : 0;
+                        
+                        const typeLabels = {
+                          quantite: 'Quantité',
+                          qualite: 'Qualité',
+                          logistique: 'Logistique',
+                          documentation: 'Documentation',
+                          non_specifie: 'Non spécifié'
+                        };
+                        
+                        return (
+                          <div key={stat.type} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-semibold text-gray-700">
+                                {typeLabels[stat.type] || stat.type}
+                              </span>
+                              <span className={`${stat.color} text-white px-3 py-1 rounded-full font-bold`}>
+                                {stat.count}
+                              </span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div 
+                                className={`${stat.color} h-2 rounded-full`}
+                                style={{ width: `${percentage}%` }}
+                              ></div>
+                            </div>
+                            <p className="text-sm text-gray-500 mt-1">{percentage}% du total</p>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="col-span-4 text-center py-4 text-gray-500">
+                        Aucune donnée disponible pour {selectedYear}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* RÉPARTITION DES RÉCLAMATIONS QUALITÉ PAR TYPE D'INCIDENT */}
+                <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-green-600" />
+                      Répartition des réclamations qualité par type d'incident {selectedYear}
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                      <span className="text-sm text-gray-600">Uniquement les réclamations de type "Qualité"</span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg mb-4">
+                    <p className="text-sm text-green-800">
+                      Cette section affiche uniquement les types d'incident des réclamations de qualité pour l'année {selectedYear}
+                    </p>
+                  </div>
+                  
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     {incidentTypes.length > 0 ? (
-                      incidentTypes.map(incident => (
-                        <div key={incident.type} className="bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-200">
-                          <div className="flex items-center justify-between">
-                            <span className="font-semibold text-gray-700 text-sm sm:text-base">{incident.type}</span>
-                            <span className={`${incident.color} text-white px-2 sm:px-3 py-1 rounded-full font-bold text-sm`}>
-                              {incident.count}
-                            </span>
+                      incidentTypes.map((incident, index) => (
+                        <div 
+                          key={incident.type} 
+                          className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 p-4 sm:p-5 rounded-lg hover:shadow-md transition-all duration-300"
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${incident.color} text-white font-bold`}>
+                                {index + 1}
+                              </div>
+                              <h4 className="font-semibold text-gray-900 text-sm sm:text-base">{incident.type}</h4>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-2xl sm:text-3xl font-bold text-green-700">{incident.count}</div>
+                              <div className="text-xs text-gray-500">occurrence(s)</div>
+                            </div>
+                          </div>
+                          <div className="mt-3">
+                            <div className="flex items-center justify-between text-sm mb-1">
+                              <span className="text-gray-600">Fréquence relative:</span>
+                              <span className="font-semibold text-green-700">
+                                {incidentTypes.reduce((sum, item) => sum + item.count, 0) > 0 
+                                  ? ((incident.count / incidentTypes.reduce((sum, item) => sum + item.count, 0)) * 100).toFixed(1) 
+                                  : 0}%
+                              </span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div 
+                                className={`${incident.color} h-2 rounded-full transition-all duration-500`}
+                                style={{ 
+                                  width: `${incidentTypes.reduce((sum, item) => sum + item.count, 0) > 0 
+                                    ? (incident.count / incidentTypes.reduce((sum, item) => sum + item.count, 0)) * 100 
+                                    : 0}%` 
+                                }}
+                              ></div>
+                            </div>
                           </div>
                         </div>
                       ))
                     ) : (
-                      <div className="col-span-3 text-center py-4 text-gray-500">
-                        Aucun type d'incident disponible pour {selectedYear}
+                      <div className="col-span-1 sm:col-span-2 lg:col-span-3 text-center py-8 bg-green-50 rounded-lg">
+                        <FileText className="w-12 h-12 text-green-400 mx-auto mb-3" />
+                        <p className="text-gray-600 font-medium">Aucun type d'incident trouvé</p>
+                        <p className="text-gray-500 text-sm mt-1">
+                          Aucune réclamation de qualité avec types d'incident n'a été trouvée pour {selectedYear}
+                        </p>
                       </div>
                     )}
                   </div>
+
+                  {/* Résumé statistique */}
+                  {incidentTypes.length > 0 && (
+                    <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                        <BarChart3 className="w-5 h-5 text-blue-600" />
+                        Résumé Statistique des Incidents Qualité {selectedYear}
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="text-center">
+                          <div className="text-2xl sm:text-3xl font-bold text-blue-700">
+                            {incidentTypes.length}
+                          </div>
+                          <div className="text-sm text-gray-600">Types d'incident différents</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl sm:text-3xl font-bold text-green-700">
+                            {incidentTypes.reduce((sum, item) => sum + item.count, 0)}
+                          </div>
+                          <div className="text-sm text-gray-600">Incidents qualité totaux</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl sm:text-3xl font-bold text-purple-700">
+                            {incidentTypes.length > 0 
+                              ? (incidentTypes.reduce((sum, item) => sum + item.count, 0) / incidentTypes.length).toFixed(1) 
+                              : 0}
+                          </div>
+                          <div className="text-sm text-gray-600">Moyenne par type</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Top Clients */}
@@ -1255,18 +2140,131 @@ export default function NutricropsQualityExcellence() {
                   </div>
                 </div>
 
-                {/* Graphique d'évolution - VERSION RESPONSIVE */}
+                {/* Graphique d'évolution avec sélection de période et types */}
                 <div className="bg-white p-3 sm:p-6 rounded-xl shadow-lg">
-                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Évolution du Nombre de Réclamations par Année</h3>
+                  <div className="flex flex-col gap-4 mb-4 sm:mb-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-900">
+                        Évolution du Nombre de Réclamations par Période
+                      </h3>
+                      
+                      {/* Sélecteur de période "from year to year" */}
+                      <div className="flex flex-col sm:flex-row items-center gap-3 bg-gray-50 p-3 sm:p-4 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-gray-700">De:</span>
+                          <select 
+                            value={selectedStartYear}
+                            onChange={(e) => setSelectedStartYear(parseInt(e.target.value))}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-sm"
+                            disabled={loadingEvolution}
+                          >
+                            {Array.from({ length: 2027 - 2018 }, (_, i) => 2018 + i).map(year => (
+                              <option key={year} value={year}>{year}</option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        <span className="text-gray-500 font-bold">→</span>
+                        
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-gray-700">À:</span>
+                          <select 
+                            value={selectedEndYear}
+                            onChange={(e) => setSelectedEndYear(parseInt(e.target.value))}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-sm"
+                            disabled={loadingEvolution}
+                          >
+                            {Array.from({ length: 2027 - 2018 }, (_, i) => 2018 + i).map(year => (
+                              <option key={year} value={year}>{year}</option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        <button 
+                          onClick={loadEvolutionData}
+                          disabled={loadingEvolution}
+                          className={`px-4 py-2 rounded-lg text-sm font-semibold ${
+                            loadingEvolution 
+                              ? 'bg-gray-400 cursor-not-allowed' 
+                              : 'bg-green-600 hover:bg-green-700 text-white'
+                          }`}
+                        >
+                          {loadingEvolution ? (
+                            <span className="flex items-center gap-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              Chargement...
+                            </span>
+                          ) : 'Appliquer'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Sélecteur de types de réclamation */}
+                    <div className="bg-blue-50 p-3 sm:p-4 rounded-lg border border-blue-200">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
+                        <div>
+                          <h4 className="font-semibold text-gray-900 mb-2">Filtrer par type de réclamation:</h4>
+                          <p className="text-sm text-gray-600">
+                            {selectedReclamationTypes.length === 0 
+                              ? 'Tous les types sélectionnés' 
+                              : `${selectedReclamationTypes.length} type(s) sélectionné(s)`}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={selectAllTypes}
+                            className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200"
+                          >
+                            Tout sélectionner
+                          </button>
+                          <button 
+                            onClick={deselectAllTypes}
+                            className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200"
+                          >
+                            Tout désélectionner
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {reclamationTypes.map(type => (
+                          <label 
+                            key={type.id}
+                            className={`flex items-center gap-2 p-2 sm:p-3 rounded-lg cursor-pointer transition-all ${
+                              selectedReclamationTypes.includes(type.id)
+                                ? 'bg-white border-2 border-blue-300 shadow-sm'
+                                : 'bg-gray-100 hover:bg-gray-200 border border-gray-300'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedReclamationTypes.includes(type.id)}
+                              onChange={() => toggleReclamationType(type.id)}
+                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <div className="flex items-center gap-2">
+                              <div className={`w-3 h-3 rounded-full ${type.color}`}></div>
+                              <span className="text-sm font-medium text-gray-700">{type.label}</span>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                   
                   {/* Conteneur graphique responsive */}
                   <div className="h-48 sm:h-64 lg:h-80 relative">
-                    {evolutionData.length > 0 ? (
+                    {loadingEvolution ? (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+                        <p className="ml-3 text-gray-500">Chargement des données...</p>
+                      </div>
+                    ) : evolutionData.length > 0 ? (
                       <>
                         {/* Grille d'arrière-plan responsive */}
                         <div className="absolute inset-0 flex flex-col justify-between">
                           {[0, 25, 50, 75, 100].map((percent) => {
-                            const maxValue = Math.max(...evolutionData.map(d => d.reclamations));
+                            const maxValue = Math.max(...evolutionData.map(d => d.total));
                             return (
                               <div key={percent} className="flex items-center">
                                 <div className="w-6 sm:w-8 lg:w-12 text-xs text-gray-400 text-right pr-1 sm:pr-2">
@@ -1278,34 +2276,83 @@ export default function NutricropsQualityExcellence() {
                           })}
                         </div>
                         
-                        {/* Barres du graphique - VERSION RESPONSIVE */}
+                        {/* Barres du graphique - VERSION RESPONSIVE avec stacked bars */}
                         <div className="flex items-end justify-between h-full gap-1 sm:gap-2 lg:gap-4 pl-8 sm:pl-10 lg:pl-14">
                           {evolutionData.map((item) => {
                             // Trouver la valeur maximale
-                            const maxValue = Math.max(...evolutionData.map(d => d.reclamations));
+                            const maxValue = Math.max(...evolutionData.map(d => d.total));
                             
                             // Calculer la hauteur proportionnelle
-                            const heightReclamations = maxValue > 0 ? (item.reclamations / maxValue) * 95 : 0;
+                            const heightTotal = maxValue > 0 ? (item.total / maxValue) * 95 : 0;
+
+                            // Obtenir les types à afficher (si aucun type sélectionné, on prend tous)
+                            const typesToDisplay = selectedReclamationTypes.length > 0 
+                              ? selectedReclamationTypes 
+                              : ['quantite', 'qualite', 'logistique', 'documentation'];
+
+                            // Calculer les proportions pour chaque type
+                            const typeProportions = {};
+                            typesToDisplay.forEach(typeId => {
+                              typeProportions[typeId] = item.total > 0 ? (item.types[typeId] || 0) / item.total : 0;
+                            });
 
                             return (
                               <div key={item.year} className="flex-1 flex flex-col items-center justify-end h-full min-w-0">
-                                {/* Barre des réclamations */}
+                                {/* Barre des réclamations - STACKED */}
                                 <div className="flex flex-col items-center justify-end h-full" style={{ height: '95%' }}>
                                   <div 
-                                    className="w-8 sm:w-12 lg:w-16 xl:w-20 bg-gradient-to-t from-green-500 to-green-600 rounded-t transition-all duration-500 hover:from-green-600 hover:to-green-700 relative group"
+                                    className="w-8 sm:w-12 lg:w-16 xl:w-20 rounded-t transition-all duration-500 relative group"
                                     style={{ 
-                                      height: `${heightReclamations}%`,
-                                      minHeight: heightReclamations > 0 ? '2px' : '0px'
+                                      height: `${heightTotal}%`,
+                                      minHeight: heightTotal > 0 ? '2px' : '0px'
                                     }}
                                   >
+                                    {/* Si aucun type sélectionné ou plusieurs types, on affiche les barres empilées */}
+                                    {selectedReclamationTypes.length === 0 || selectedReclamationTypes.length > 1 ? (
+                                      // Barres empilées
+                                      <div className="w-full h-full flex flex-col">
+                                        {typesToDisplay.map(typeId => {
+                                          const proportion = typeProportions[typeId];
+                                          return proportion > 0 ? (
+                                            <div
+                                              key={typeId}
+                                              className={`w-full ${getTypeColor(typeId)} transition-all duration-300 hover:opacity-90`}
+                                              style={{ 
+                                                height: `${proportion * 100}%`,
+                                                minHeight: proportion > 0 ? '2px' : '0px'
+                                              }}
+                                              title={`${getTypeLabel(typeId)}: ${item.types[typeId] || 0}`}
+                                            ></div>
+                                          ) : null;
+                                        }).reverse()}
+                                      </div>
+                                    ) : (
+                                      // Si un seul type est sélectionné, on affiche une barre simple
+                                      <div 
+                                        className={`w-full h-full ${getTypeColor(selectedReclamationTypes[0])} rounded-t transition-all duration-300 hover:opacity-90`}
+                                      ></div>
+                                    )}
+                                    
                                     {/* Tooltip pour mobile et desktop */}
-                                    <div className="absolute -top-6 sm:-top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 hidden sm:block">
-                                      {item.reclamations} réclamations
+                                    <div className="absolute -top-10 sm:-top-12 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs py-2 px-3 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 hidden sm:block min-w-[200px]">
+                                      <div className="font-bold mb-1">{item.year}: {item.total} réclamations</div>
+                                      {typesToDisplay.map(typeId => (
+                                        item.types[typeId] > 0 && (
+                                          <div key={typeId} className="flex items-center justify-between gap-2">
+                                            <div className="flex items-center gap-1">
+                                              <div className={`w-2 h-2 rounded ${getTypeColor(typeId)}`}></div>
+                                              <span>{getTypeLabel(typeId)}:</span>
+                                            </div>
+                                            <span className="font-bold">{item.types[typeId] || 0}</span>
+                                          </div>
+                                        )
+                                      ))}
                                     </div>
                                   </div>
-                                  {/* Nombre de réclamations - visible sur tous les écrans */}
+                                  
+                                  {/* Nombre total de réclamations - visible sur tous les écrans */}
                                   <div className="mt-1 text-[10px] xs:text-xs sm:text-sm font-bold text-green-700 text-center leading-tight">
-                                    {item.reclamations}
+                                    {item.total}
                                   </div>
                                 </div>
                                 
@@ -1320,24 +2367,39 @@ export default function NutricropsQualityExcellence() {
                           })}
                         </div>
 
+                        {/* Légende des types */}
+                        <div className="absolute bottom-0 left-8 sm:left-10 lg:left-14 right-0 flex justify-center mt-4">
+                          <div className="flex flex-wrap gap-2 sm:gap-3 bg-white/90 backdrop-blur-sm p-2 sm:p-3 rounded-lg border border-gray-200 shadow-sm">
+                            {reclamationTypes.map(type => (
+                              <div key={type.id} className="flex items-center gap-1 sm:gap-2">
+                                <div className={`w-3 h-3 rounded ${type.color}`}></div>
+                                <span className="text-[10px] xs:text-xs text-gray-700 font-medium">{type.label}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
                         {/* Légende mobile pour les tooltips */}
                         <div className="sm:hidden mt-4 text-center">
                           <p className="text-xs text-gray-500">
-                            👆 Touchez les barres pour voir les détails
+                            👆 Touchez les barres pour voir les détails par type
                           </p>
                         </div>
                       </>
                     ) : (
                       <div className="flex items-center justify-center h-full">
-                        <p className="text-gray-500 text-sm sm:text-base">Chargement des données d'évolution...</p>
+                        <p className="text-gray-500 text-sm sm:text-base">
+                          Aucune donnée disponible pour cette période
+                        </p>
                       </div>
                     )}
                   </div>
 
                   {/* Tableau récapitulatif responsive */}
                   <div className="mt-6 sm:mt-8 grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-                    {evolutionData.map(item => {
-                      const maxReclamations = Math.max(...evolutionData.map(d => d.reclamations));
+                    {evolutionData.map((item, index) => {
+                      const maxReclamations = Math.max(...evolutionData.map(d => d.total));
+                      const previousYearItem = evolutionData[index - 1];
                       
                       return (
                         <div key={item.year} className="text-center p-3 sm:p-4 bg-gradient-to-br from-gray-50 to-white rounded-lg border border-gray-200">
@@ -1349,17 +2411,38 @@ export default function NutricropsQualityExcellence() {
                               <div className="flex justify-between items-center mb-1">
                                 <span className="text-xs sm:text-sm text-gray-600 flex items-center gap-1">
                                   <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded"></div>
-                                  <span className="hidden xs:inline">Réc:</span>
-                                  <span className="xs:hidden">R:</span>
+                                  <span className="hidden xs:inline">Total:</span>
+                                  <span className="xs:hidden">T:</span>
                                 </span>
-                                <span className="text-sm sm:text-lg font-bold text-green-600">{item.reclamations}</span>
+                                <span className="text-sm sm:text-lg font-bold text-green-600">{item.total}</span>
                               </div>
                               <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
                                 <div 
                                   className="bg-green-500 h-1.5 sm:h-2 rounded-full transition-all duration-500"
-                                  style={{ width: `${maxReclamations > 0 ? (item.reclamations / maxReclamations) * 100 : 0}%` }}
+                                  style={{ width: `${maxReclamations > 0 ? (item.total / maxReclamations) * 100 : 0}%` }}
                                 ></div>
                               </div>
+                            </div>
+                            
+                            {/* Détails par type */}
+                            <div className="space-y-1">
+                              {reclamationTypes.map(type => {
+                                const count = item.types[type.id] || 0;
+                                const percentage = item.total > 0 ? ((count / item.total) * 100).toFixed(0) : 0;
+                                
+                                return count > 0 ? (
+                                  <div key={type.id} className="flex justify-between items-center text-xs">
+                                    <div className="flex items-center gap-1">
+                                      <div className={`w-2 h-2 rounded ${type.color}`}></div>
+                                      <span className="text-gray-600">{type.label.charAt(0)}:</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <span className="font-semibold">{count}</span>
+                                      <span className="text-gray-500 text-[10px]">({percentage}%)</span>
+                                    </div>
+                                  </div>
+                                ) : null;
+                              })}
                             </div>
                             
                             {/* Évolution annuelle */}
@@ -1367,12 +2450,18 @@ export default function NutricropsQualityExcellence() {
                               <div className="flex justify-between items-center text-xs">
                                 <span className="text-gray-500">Évolution:</span>
                                 <span className={`font-semibold ${
-                                  item.reclamations > (evolutionData.find(d => d.year === item.year - 1)?.reclamations || 0) 
-                                    ? 'text-red-600' 
-                                    : 'text-green-600'
+                                  index > 0 && item.total > (previousYearItem?.total || 0) 
+                                    ? 'text-green-600' 
+                                    : index > 0 && item.total < (previousYearItem?.total || 0)
+                                    ? 'text-red-600'
+                                    : 'text-gray-600'
                                 }`}>
-                                  {item.reclamations > (evolutionData.find(d => d.year === item.year - 1)?.reclamations || 0) ? '+' : ''}
-                                  {item.reclamations - (evolutionData.find(d => d.year === item.year - 1)?.reclamations || 0)}
+                                  {index > 0 ? (
+                                    <>
+                                      {item.total > previousYearItem.total ? '+' : ''}
+                                      {item.total - previousYearItem.total}
+                                    </>
+                                  ) : '—'}
                                 </span>
                               </div>
                             </div>
@@ -1382,21 +2471,63 @@ export default function NutricropsQualityExcellence() {
                     })}
                   </div>
 
+                  {/* Message quand aucune donnée n'est disponible */}
+                  {evolutionData.length === 0 && !loadingEvolution && (
+                    <div className="text-center py-8 bg-gray-50 rounded-lg">
+                      <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-600 font-medium">Aucune donnée disponible</p>
+                      <p className="text-gray-500 text-sm mt-1">
+                        Aucune réclamation n'a été trouvée pour la période {selectedStartYear} - {selectedEndYear}
+                        {selectedReclamationTypes.length > 0 && ` et les types sélectionnés`}
+                      </p>
+                    </div>
+                  )}
+
                   {/* Statistiques globales responsive */}
                   <div className="mt-4 sm:mt-6">
                     <div className="bg-green-50 p-3 sm:p-4 rounded-lg border border-green-200">
                       <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs sm:text-sm font-medium text-green-800">Total Réclamations (5 ans)</p>
+                          <p className="text-xs sm:text-sm font-medium text-green-800">
+                            Total Réclamations ({selectedStartYear} - {selectedEndYear})
+                            {selectedReclamationTypes.length > 0 && ` • Types sélectionnés`}
+                          </p>
                           <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-900">
-                            {evolutionData.reduce((sum, item) => sum + item.reclamations, 0)}
+                            {evolutionData.reduce((sum, item) => sum + item.total, 0)}
                           </p>
                           <p className="text-xs text-green-600 mt-0.5 sm:mt-1">
-                            Moyenne: {(evolutionData.reduce((sum, item) => sum + item.reclamations, 0) / evolutionData.length).toFixed(1)} / an
+                            Moyenne: {evolutionData.length > 0 ? (evolutionData.reduce((sum, item) => sum + item.total, 0) / evolutionData.length).toFixed(1) : 0} / an
                           </p>
                         </div>
                         <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 flex-shrink-0 ml-2" />
                       </div>
+                      
+                      {/* Détail par type pour la période totale */}
+                      {evolutionData.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-green-200">
+                          <p className="text-xs font-medium text-green-700 mb-2">Répartition par type sur la période:</p>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {reclamationTypes.map(type => {
+                              const totalForType = evolutionData.reduce((sum, item) => sum + (item.types[type.id] || 0), 0);
+                              const totalAll = evolutionData.reduce((sum, item) => sum + item.total, 0);
+                              const percentage = totalAll > 0 ? ((totalForType / totalAll) * 100).toFixed(1) : 0;
+                              
+                              return totalForType > 0 ? (
+                                <div key={type.id} className="flex items-center justify-between p-2 bg-white/50 rounded">
+                                  <div className="flex items-center gap-2">
+                                    <div className={`w-3 h-3 rounded ${type.color}`}></div>
+                                    <span className="text-xs font-medium text-gray-700">{type.label}</span>
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="text-sm font-bold text-gray-900">{totalForType}</span>
+                                    <span className="text-xs text-gray-500 ml-1">({percentage}%)</span>
+                                  </div>
+                                </div>
+                              ) : null;
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1445,10 +2576,11 @@ export default function NutricropsQualityExcellence() {
                     <span className="text-sm font-semibold text-gray-700">Année:</span>
                     <select 
                       value={filterYear}
-                      onChange={(e) => setFilterYear(parseInt(e.target.value))}
+                      onChange={(e) => setFilterYear(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
                       className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
                     >
-                      {[2021, 2022, 2023, 2024, 2025].map(year => (
+                      <option value="all">Toutes les années</option>
+                      {[2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026].map(year => (
                         <option key={year} value={year}>{year}</option>
                       ))}
                     </select>
@@ -1475,130 +2607,59 @@ export default function NutricropsQualityExcellence() {
                   </div>
                 </div>
 
+                {/* Filtres additionnels */}
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center mt-2">
+                  <div className="flex gap-2 items-center">
+                    <span className="text-sm font-semibold text-gray-700">Type:</span>
+                    <select 
+                      value={filterReclamationType}
+                      onChange={(e) => setFilterReclamationType(e.target.value)}
+                      className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                    >
+                      <option value="all">Tous types</option>
+                      <option value="quantite">Quantité</option>
+                      <option value="qualite">Qualité</option>
+                      <option value="logistique">Logistique</option>
+                      <option value="documentation">Documentation</option>
+                    </select>
+                  </div>
+
+                  <div className="flex gap-2 items-center">
+                    <span className="text-sm font-semibold text-gray-700">Région:</span>
+                    <select 
+                      value={filterRegion}
+                      onChange={(e) => setFilterRegion(e.target.value)}
+                      className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                    >
+                      <option value="all">Toutes régions</option>
+                      <option value="Europe">Europe</option>
+                      <option value="Asie">Asie</option>
+                      <option value="Amérique">Amérique</option>
+                      <option value="Afrique">Afrique</option>
+                      <option value="Océanie">Océanie</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div className="text-sm text-gray-600">
-                  <span className="font-semibold">{filteredReclamations.length}</span> réclamation(s) trouvée(s) pour {filterYear}
+                  <span className="font-semibold">{filteredReclamations.length}</span> réclamation(s) trouvée(s) {filterYear !== 'all' ? `pour ${filterYear}` : 'toutes années confondues'}
+                  {filterReclamationType !== 'all' && ` • Type: ${filterReclamationType}`}
+                  {filterRegion !== 'all' && ` • Région: ${filterRegion}`}
                 </div>
               </div>
             </div>
 
-            {/* Liste Réclamations */}
+            {/* Liste Réclamations AVEC CARTES SMART */}
             {!selectedReclamation ? (
               <div className="space-y-4">
                 {filteredReclamations.length > 0 ? (
                   filteredReclamations.map(rec => (
-                    <div key={rec.id} className="bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all">
-                      <div className="p-4 sm:p-6">
-                        <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3">
-                              <h3 className="text-lg sm:text-xl font-bold text-gray-900 truncate">
-                                {rec.readable_id || `REC-${rec.id.substring(0, 8)}`}
-                              </h3>
-                              {getStatutBadge(rec.statut)}
-                              {getPrioriteBadge(rec.priorite)}
-                              {rec.type_reclamation && getReclamationTypeBadge(rec.type_reclamation)}
-                              {rec.region && (
-                                <span className="text-sm px-2 sm:px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
-                                  {rec.region}
-                                </span>
-                              )}
-                            </div>
-                            
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 text-sm mb-3">
-                              <div>
-                                <span className="text-gray-500">Client:</span>
-                                <p className="font-semibold text-gray-900 truncate">{rec.client}</p>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Navire:</span>
-                                <p className="font-semibold text-gray-900 truncate">{rec.navire}</p>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Site:</span>
-                                <p className="font-semibold text-gray-900 truncate">{rec.site}</p>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Date réception:</span>
-                                <p className="font-semibold text-gray-900">{formatDate(rec.date_reception)}</p>
-                              </div>
-                            </div>
-
-                            {rec.nouveau_produit && (
-                              <div className="mb-3">
-                                <span className="px-2 sm:px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-bold border border-purple-300">
-                                  ⭐ NOUVEAU PRODUIT
-                                </span>
-                              </div>
-                            )}
-
-                            {/* AFFICHAGE PRODUIT ET SOUS-PRODUIT */}
-                            <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-sm mb-3">
-                              <div className="flex items-center gap-1">
-                                <Package className="w-4 h-4 text-gray-500" />
-                                <span className="text-gray-600">
-                                  {rec.qualite}
-                                  {rec.sous_produit && (
-                                    <span className="text-gray-400"> / {rec.sous_produit}</span>
-                                  )}
-                                </span>
-                              </div>
-                              {rec.quantite > 0 && (
-                                <div>
-                                  <span className="text-gray-600">Quantité: </span>
-                                  <span className="font-semibold text-gray-900">{rec.quantite?.toLocaleString()} MT</span>
-                                </div>
-                              )}
-                              <div>
-                                <span className="text-gray-600">Demandé: </span>
-                                <span className="font-bold text-red-600">{formatCurrency(rec.montant_demande)}</span>
-                              </div>
-                              {rec.montant_dedommage > 0 && (
-                                <div>
-                                  <span className="text-gray-600">Dédommagé: </span>
-                                  <span className="font-bold text-green-600">{formatCurrency(rec.montant_dedommage)}</span>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Affichage des types d'incident multiples */}
-                            {rec.type_incident && (
-                              <div className="mb-3">
-                                <span className="text-gray-600 text-sm">Types d'incident: </span>
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                  {rec.type_incident.split(', ').map((type, index) => (
-                                    <span 
-                                      key={index}
-                                      className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium"
-                                    >
-                                      {type}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded">
-                              <p className="text-sm font-medium text-gray-900 line-clamp-2">{rec.probleme}</p>
-                            </div>
-                          </div>
-                          <div className="flex flex-col gap-2 w-full sm:w-auto">
-                            <button 
-                              onClick={() => setSelectedReclamation(rec)}
-                              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm w-full sm:w-auto"
-                            >
-                              Voir Détails
-                            </button>
-                            <button 
-                              onClick={() => setDeleteReclamationConfirm(rec)}
-                              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm flex items-center gap-2 justify-center w-full sm:w-auto"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Supprimer
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <SmartReclamationCard 
+                      key={rec.id} 
+                      reclamation={rec}
+                      setSelectedReclamation={setSelectedReclamation}
+                      setDeleteReclamationConfirm={setDeleteReclamationConfirm}
+                    />
                   ))
                 ) : (
                   <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 sm:p-8 text-center">
@@ -2099,12 +3160,13 @@ export default function NutricropsQualityExcellence() {
                   </label>
                 </div>
 
-                {/* Sélecteur multiple de types d'incident */}
+                {/* Sélecteur multiple de types d'incident - SEULEMENT pour qualité */}
                 <MultipleIncidentTypesSelector
                   selectedTypes={selectedIncidentTypes}
                   onTypesChange={setSelectedIncidentTypes}
-                  label="Types d'Incident *"
-                  required={true}
+                  label="Types d'Incident"
+                  required={reclamationType === 'qualite'}
+                  disabled={reclamationType !== 'qualite'}
                 />
 
                 <div>
